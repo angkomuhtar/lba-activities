@@ -1,0 +1,49 @@
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
+import { can } from "@/lib/role-permissions";
+import { PERMS } from "@/lib/perm-ids";
+import { ActivitiesClient } from "./activities-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function ActivitiesPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (!(await can(user.role, PERMS.shipView))) redirect("/");
+
+  const canManage = await can(user.role, PERMS.activityManage);
+
+  const [ships, categories, activities] = await Promise.all([
+    prisma.ship.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
+    prisma.activityCategory.findMany({ orderBy: { nama: "asc" } }),
+    prisma.shipActivity.findMany({
+      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+      take: 100,
+      include: {
+        ship: { select: { nama: true } },
+        voyage: { select: { ruteAsal: true, ruteTujuan: true, siNomor: true } },
+      },
+    }),
+  ]);
+
+  const enriched = activities.map((a) => ({
+    ...a,
+    voyageLabel: a.voyage
+      ? a.voyage.ruteAsal || a.voyage.ruteTujuan
+        ? `${a.voyage.ruteAsal || "?"} → ${a.voyage.ruteTujuan || "?"}`
+        : a.voyage.siNomor
+          ? `SI ${a.voyage.siNomor}`
+          : "Pelayaran"
+      : null,
+  }));
+
+  return (
+    <ActivitiesClient
+      ships={ships}
+      categories={categories.map((c) => c.nama)}
+      activities={enriched}
+      canManage={canManage}
+    />
+  );
+}

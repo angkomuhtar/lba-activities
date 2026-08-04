@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         String
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  label       String
+  description String?
+  system      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String @id
+  label       String
+  description String?
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+enum ActivityStatus {
+  hijau
+  kuning
+  merah
+}
+
+model Ship {
+  id        String   @id @default(uuid())
+  nama      String
+  muatan    String?
+  voyages   Voyage[]
+  activities ShipActivity[]
+  stocks    StockRecord[]
+  createdById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ships")
+}
+
+model Voyage {
+  id         String         @id @default(uuid())
+  shipId     String
+  ship       Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  ruteAsal   String?
+  ruteTujuan String?
+  tglStart   DateTime?
+  tglEnd     DateTime?
+  siNomor    String?
+  siTanggal  DateTime?
+  spalNomor  String?
+  spalTanggal DateTime?
+  catatan    String?
+  activities ShipActivity[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([shipId])
+  @@map("voyages")
+}
+
+model ActivityCategory {
+  id    String         @id @default(uuid())
+  nama  String         @unique
+  warna ActivityStatus
+
+  @@map("activity_categories")
+}
+
+model ShipActivity {
+  id          String         @id @default(uuid())
+  shipId      String
+  ship        Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  voyageId    String?
+  voyage      Voyage?        @relation(fields: [voyageId], references: [id], onDelete: SetNull)
+  tanggal     DateTime
+  aktivitas   String
+  status      ActivityStatus
+  catatan     String?
+  createdById String?
+  createdAt   DateTime       @default(now())
+
+  @@index([shipId])
+  @@index([voyageId])
+  @@map("ship_activities")
+}
+
+model StockRecord {
+  id        String   @id @default(uuid())
+  shipId    String
+  ship      Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  tanggal   DateTime
+  stokAwal  Decimal
+  me        Decimal
+  ae        Decimal
+  sisaStok  Decimal
+  catatan   String?
+  createdAt DateTime @default(now())
+
+  @@map("stock_records")
+}
