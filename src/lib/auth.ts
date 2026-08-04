@@ -78,7 +78,21 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return decryptSession(token);
+
+  const session = await decryptSession(token);
+  if (!session) return null;
+
+  // Ambil data terbaru dari DB (username/name/role bisa berubah setelah token dibuat,
+  // dan token lama mungkin belum menyimpan username/name).
+  const user = await prisma.user.findUnique({ where: { id: session.id } });
+  if (!user || !user.isActive) return null;
+
+  return {
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role as Role,
+  };
 }
 
 export async function findUserByUsername(username: string) {
