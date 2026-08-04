@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition, useState } from "react";
+import { useActionState, useTransition, useState, useMemo } from "react";
 import { Check, FileCheck2, FileX2, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import {
   createVoyage,
@@ -27,6 +27,8 @@ export interface VoyageActivity {
 
 export interface VoyageItem {
   id: string;
+  shipId: string;
+  shipName: string;
   ruteAsal: string | null;
   ruteTujuan: string | null;
   tglStart: string | null;
@@ -39,28 +41,63 @@ export interface VoyageItem {
   activities: VoyageActivity[];
 }
 
-interface VoyagesProps {
-  shipId: string;
-  canManage: boolean;
+interface VoyagesClientProps {
+  ships: { id: string; nama: string }[];
   voyages: VoyageItem[];
+  canManage: boolean;
 }
 
-export function Voyages({ shipId, canManage, voyages }: VoyagesProps) {
-  return (
-    <div className="space-y-4">
-      {canManage && <AddVoyageForm shipId={shipId} />}
+export function VoyagesClient({ ships, voyages, canManage }: VoyagesClientProps) {
+  const [filterShip, setFilterShip] = useState("all");
 
-      {voyages.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Belum ada pelayaran. Tambahkan pelayaran untuk mulai mencatat aktivitas per voyage.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {voyages.map((v) => (
-            <VoyageCard key={v.id} voyage={v} canManage={canManage} />
-          ))}
+  const filtered = useMemo(
+    () => (filterShip === "all" ? voyages : voyages.filter((v) => v.shipId === filterShip)),
+    [voyages, filterShip],
+  );
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <div className="lg:col-span-1">
+        {canManage && <AddVoyageForm ships={ships} />}
+        {!canManage && (
+          <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            Anda tidak memiliki izin untuk mengelola pelayaran.
+          </p>
+        )}
+      </div>
+
+      <div className="lg:col-span-2 space-y-4">
+        <div className="flex items-center gap-3">
+          <Label htmlFor="filter-ship" className="shrink-0">
+            Kapal
+          </Label>
+          <select
+            id="filter-ship"
+            value={filterShip}
+            onChange={(e) => setFilterShip(e.target.value)}
+            className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+          >
+            <option value="all">Semua Kapal</option>
+            {ships.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nama}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
+
+        {filtered.length === 0 ? (
+          <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            Belum ada pelayaran{filterShip !== "all" ? " untuk kapal ini" : ""}.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((v) => (
+              <VoyageCard key={v.id} voyage={v} canManage={canManage} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -117,20 +154,8 @@ const FIELDS: { name: VoyageField; label: string; type?: string }[] = [
   { name: "spalTanggal", label: "Tanggal SPAL", type: "date" },
 ];
 
-function VoyageFields({ disabled }: { disabled: boolean }) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {FIELDS.map((f) => (
-        <div key={f.name} className="space-y-2">
-          <Label htmlFor={f.name}>{f.label}</Label>
-          <Input id={f.name} name={f.name} type={f.type ?? "text"} disabled={disabled} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AddVoyageForm({ shipId }: { shipId: string }) {
+function AddVoyageForm({ ships }: { ships: { id: string; nama: string }[] }) {
+  const [shipId, setShipId] = useState(ships[0]?.id ?? "");
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     (prev, formData) => createVoyage(shipId, prev, formData),
     undefined,
@@ -150,13 +175,39 @@ function AddVoyageForm({ shipId }: { shipId: string }) {
         <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">{state.success}</p>
       )}
 
-      <VoyageFields disabled={pending} />
+      <div className="space-y-2">
+        <Label htmlFor="voyage-ship">Kapal</Label>
+        <select
+          id="voyage-ship"
+          value={shipId}
+          onChange={(e) => setShipId(e.target.value)}
+          required
+          disabled={pending || ships.length === 0}
+          className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+        >
+          {ships.length === 0 && <option value="">Belum ada kapal</option>}
+          {ships.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nama}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {FIELDS.map((f) => (
+          <div key={f.name} className="space-y-2">
+            <Label htmlFor={f.name}>{f.label}</Label>
+            <Input id={f.name} name={f.name} type={f.type ?? "text"} disabled={pending} />
+          </div>
+        ))}
+      </div>
       <div className="space-y-2">
         <Label htmlFor="catatan">Catatan</Label>
         <Input id="catatan" name="catatan" disabled={pending} />
       </div>
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" disabled={pending || !shipId} className="w-full">
         {pending && <Loader2 className="size-4 animate-spin" />}
         Simpan Pelayaran
       </Button>
@@ -179,6 +230,7 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
+          <p className="text-sm text-muted-foreground">{voyage.shipName}</p>
           <p className="font-semibold">{voyageLabel(voyage)}</p>
           <p className="text-sm text-muted-foreground">
             {formatDate(voyage.tglStart)} — {voyage.tglEnd ? formatDate(voyage.tglEnd) : "masih berjalan"}
@@ -214,7 +266,11 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
             <FileX2 className="size-3.5" /> SPAL
           </span>
         )}
-        {voyage.ruteAsal && <span className="text-muted-foreground">SI: {voyage.siNomor || "-"} · SPAL: {voyage.spalNomor || "-"}</span>}
+        {voyage.ruteAsal && (
+          <span className="text-muted-foreground">
+            SI: {voyage.siNomor || "-"} · SPAL: {voyage.spalNomor || "-"}
+          </span>
+        )}
       </div>
 
       {longest && (

@@ -27,6 +27,10 @@ export default async function UsersPage() {
     prisma.role.findMany({ orderBy: { name: "asc" } }),
   ]);
 
+  // Sembunyikan user dengan role superadmin jika session user bukan superadmin
+  const visibleUsers =
+    sessionUser.role === "superadmin" ? users : users.filter((u) => u.role !== "superadmin");
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -56,7 +60,7 @@ export default async function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {visibleUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell>{user.name ?? "-"}</TableCell>

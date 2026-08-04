@@ -165,6 +165,7 @@ export async function createVoyage(
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/ships");
   revalidatePath("/");
+  revalidatePath("/voyages");
   return { success: "Pelayaran berhasil ditambahkan." };
 }
 
@@ -190,6 +191,7 @@ export async function updateVoyage(
   revalidatePath(`/ships/${voyage.shipId}`);
   revalidatePath("/ships");
   revalidatePath("/");
+  revalidatePath("/voyages");
   return { success: "Data pelayaran berhasil disimpan." };
 }
 
@@ -208,7 +210,34 @@ export async function deleteVoyage(voyageId: string): Promise<ActionResult> {
   revalidatePath(`/ships/${voyage.shipId}`);
   revalidatePath("/ships");
   revalidatePath("/");
+  revalidatePath("/voyages");
   return { success: "Pelayaran berhasil dihapus." };
+}
+
+// Selesaikan pelayaran: set Tanggal Selesai = hari ini.
+export async function finishVoyage(voyageId: string): Promise<ActionResult> {
+  try {
+    await requireManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const voyage = await prisma.voyage.findUnique({ where: { id: voyageId } });
+  if (!voyage) return { error: "Data pelayaran tidak ditemukan." };
+
+  if (voyage.tglEnd) {
+    return { error: "Pelayaran ini sudah memiliki tanggal selesai." };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  await prisma.voyage.update({ where: { id: voyageId }, data: { tglEnd: today } });
+
+  revalidatePath(`/ships/${voyage.shipId}`);
+  revalidatePath("/ships");
+  revalidatePath("/");
+  revalidatePath("/voyages");
+  return { success: "Pelayaran diselesaikan hari ini." };
 }
 
 const activitySchema = z.object({
@@ -243,6 +272,15 @@ export async function createActivity(
   const tanggal = parseDate(parsed.data.tanggal)!;
   const voyageId = await assignVoyageToActivity(shipId, tanggal);
 
+  if (!voyageId) {
+    return {
+      error:
+        "Belum ada pelayaran yang tersedia untuk kapal ini pada tanggal tersebut. Tambahkan/atur pelayaran dahulu di halaman kapal (Data Pelayaran).",
+    };
+  }
+
+  const voyage = await prisma.voyage.findUnique({ where: { id: voyageId } });
+
   await prisma.shipActivity.create({
     data: {
       shipId,
@@ -257,7 +295,14 @@ export async function createActivity(
 
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/");
-  return { success: "Aktivitas berhasil dicatat." };
+  const voyageLabel = voyage
+    ? voyage.ruteAsal || voyage.ruteTujuan
+      ? `${voyage.ruteAsal || "?"} → ${voyage.ruteTujuan || "?"}`
+      : voyage.siNomor
+        ? `SI ${voyage.siNomor}`
+        : "Pelayaran"
+    : null;
+  return { success: voyageLabel ? `Aktivitas berhasil dicatat (${voyageLabel}).` : "Aktivitas berhasil dicatat." };
 }
 
 export async function deleteActivity(id: string): Promise<ActionResult> {

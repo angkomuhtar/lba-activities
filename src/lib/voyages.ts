@@ -160,7 +160,8 @@ export interface PersistedAlert {
   days: number;
 }
 
-// Kapal dengan aktivitas kuning/merah yang sama bertahan >= 2 hari berturut-turut.
+// Kapal dengan aktivitas kuning/merah yang sama bertahan >= minDays hari berturut-turut
+// SAMPAI HARI INI (hanya status yang masih berlangsung hari ini yang ditampilkan).
 export async function getPersistedAlerts(minDays = 2): Promise<PersistedAlert[]> {
   const ships = await prisma.ship.findMany({
     select: { id: true, nama: true },
@@ -178,38 +179,45 @@ export async function getPersistedAlerts(minDays = 2): Promise<PersistedAlert[]>
     byShip.set(act.shipId, arr);
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isSameDay = (a: Date) => {
+    const d = new Date(a);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  };
+
   const alerts: PersistedAlert[] = [];
 
   for (const ship of ships) {
     const acts = byShip.get(ship.id) ?? [];
-    let run: (typeof acts)[number][] = [];
+    if (acts.length === 0) continue;
 
-    const flush = () => {
-      if (run.length === 0) return;
-      const status = run[0].status as "kuning" | "merah";
-      if (status !== "kuning" && status !== "merah") {
-        run = [];
-        return;
-      }
-      if (run.length >= minDays) {
-        alerts.push({
-          shipId: ship.id,
-          shipName: ship.nama,
-          status,
-          aktivitas: run[0].aktivitas,
-          from: run[0].tanggal,
-          to: run[run.length - 1].tanggal,
-          days: run.length,
-        });
-      }
-      run = [];
-    };
+    // Ambil hanya deret (run) terakhir — status yang masih berlangsung hari ini.
+    const last = acts[acts.length - 1];
+    if (!isSameDay(last.tanggal)) continue; // tidak ada catatan hari ini, lewati
 
-    for (const act of acts) {
-      if (run.length > 0 && run[0].aktivitas !== act.aktivitas) flush();
-      run.push(act);
+    const status = last.status as "kuning" | "merah";
+    if (status !== "kuning" && status !== "merah") continue;
+
+    const run: (typeof acts)[number][] = [last];
+    for (let i = acts.length - 2; i >= 0; i--) {
+      const act = acts[i];
+      if (act.aktivitas !== last.aktivitas) break;
+      run.unshift(act);
     }
-    flush();
+
+    if (run.length >= minDays) {
+      alerts.push({
+        shipId: ship.id,
+        shipName: ship.nama,
+        status,
+        aktivitas: run[0].aktivitas,
+        from: run[0].tanggal,
+        to: run[run.length - 1].tanggal,
+        days: run.length,
+      });
+    }
   }
 
   return alerts;

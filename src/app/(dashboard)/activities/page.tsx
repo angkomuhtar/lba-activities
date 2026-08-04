@@ -14,7 +14,7 @@ export default async function ActivitiesPage() {
 
   const canManage = await can(user.role, PERMS.activityManage);
 
-  const [ships, categories, activities] = await Promise.all([
+  const [ships, categories, activities, voyageGroup] = await Promise.all([
     prisma.ship.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
     prisma.activityCategory.findMany({ orderBy: { nama: "asc" } }),
     prisma.shipActivity.findMany({
@@ -25,7 +25,13 @@ export default async function ActivitiesPage() {
         voyage: { select: { ruteAsal: true, ruteTujuan: true, siNomor: true } },
       },
     }),
+    prisma.voyage.groupBy({ by: ["shipId"], _count: { _all: true } }),
   ]);
+
+  const voyageCounts: Record<string, number> = {};
+  for (const g of voyageGroup) {
+    voyageCounts[g.shipId] = g._count._all;
+  }
 
   const enriched = activities.map((a) => ({
     ...a,
@@ -43,6 +49,7 @@ export default async function ActivitiesPage() {
       ships={ships}
       categories={categories.map((c) => c.nama)}
       activities={enriched}
+      voyageCounts={voyageCounts}
       canManage={canManage}
     />
   );

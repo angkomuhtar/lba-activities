@@ -19,6 +19,7 @@ interface ActivitiesClientProps {
     ship: { nama: string };
     voyageLabel: string | null;
   })[];
+  voyageCounts: Record<string, number>;
   canManage: boolean;
 }
 
@@ -26,6 +27,7 @@ export function ActivitiesClient({
   ships,
   categories,
   activities,
+  voyageCounts,
   canManage,
 }: ActivitiesClientProps) {
   const [shipId, setShipId] = useState(ships[0]?.id ?? "");
@@ -33,6 +35,8 @@ export function ActivitiesClient({
     (prev, formData) => createActivity(shipId, prev, formData),
     undefined,
   );
+
+  const hasVoyage = shipId ? (voyageCounts[shipId] ?? 0) > 0 : false;
 
   const filtered = useMemo(
     () => (shipId ? activities.filter((a) => a.shipId === shipId) : activities),
@@ -81,6 +85,13 @@ export function ActivitiesClient({
               </select>
             </div>
 
+            {shipId && !hasVoyage && (
+              <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
+                Belum ada pelayaran untuk kapal ini. Tambahkan pelayaran dahulu di halaman kapal (Data
+                Pelayaran) sebelum input aktivitas.
+              </p>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="tanggal">Tanggal</Label>
               <Input id="tanggal" name="tanggal" type="date" required disabled={!canManage} />
@@ -110,7 +121,7 @@ export function ActivitiesClient({
             </div>
 
             {canManage ? (
-              <Button type="submit" className="w-full" disabled={pending || !shipId}>
+              <Button type="submit" className="w-full" disabled={pending || !shipId || !hasVoyage}>
                 {pending && <Loader2 className="size-4 animate-spin" />}
                 Simpan Aktivitas
               </Button>
