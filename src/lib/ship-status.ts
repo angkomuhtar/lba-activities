@@ -8,6 +8,8 @@ export type ShipWithStatus = {
   fuelSisa: string | null;
   siAda: boolean;
   spalAda: boolean;
+  ruteAsal: string | null;
+  ruteTujuan: string | null;
   stocks: {
     id: string;
     tanggal: string;

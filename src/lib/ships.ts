@@ -36,17 +36,35 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
     stocksByShip.set(rec.shipId, arr);
   }
 
-  const voyageByShip = new Map(voyages.map((v) => [v.shipId, v]));
+  // Voyage terbaru/berjalan per kapal: prioritas yang masih aktif (tglEnd kosong),
+  // lalu yang tglStart-nya paling baru.
+  const voyagesByShip = new Map<string, (typeof voyages)[number][]>();
+  for (const v of voyages) {
+    const arr = voyagesByShip.get(v.shipId) ?? [];
+    arr.push(v);
+    voyagesByShip.set(v.shipId, arr);
+  }
+
+  const currentVoyageByShip = new Map<string, (typeof voyages)[number]>();
+  for (const [shipId, list] of voyagesByShip) {
+    const active = list
+      .filter((v) => v.tglEnd === null)
+      .sort((a, b) => (b.tglStart?.getTime() ?? 0) - (a.tglStart?.getTime() ?? 0));
+    const latest = [...list].sort((a, b) => (b.tglStart?.getTime() ?? 0) - (a.tglStart?.getTime() ?? 0));
+    currentVoyageByShip.set(shipId, active[0] ?? latest[0]);
+  }
 
   return ships.map((ship) => {
     const shipStocks = stocksByShip.get(ship.id) ?? [];
-    const voyage = voyageByShip.get(ship.id);
+    const voyage = currentVoyageByShip.get(ship.id) ?? null;
     return {
       ship: { id: ship.id, nama: ship.nama, muatan: ship.muatan },
       latest: latestActByShip.get(ship.id) ?? null,
       fuelSisa: shipStocks[0]?.sisaStok.toString() ?? null,
       siAda: Boolean(voyage?.siNomor && voyage.siTanggal),
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
+      ruteAsal: voyage?.ruteAsal ?? null,
+      ruteTujuan: voyage?.ruteTujuan ?? null,
       stocks: shipStocks.map((r) => ({
         id: r.id,
         tanggal: r.tanggal.toISOString(),

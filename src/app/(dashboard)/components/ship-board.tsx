@@ -84,8 +84,13 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
 }
 
 function ShipCard({ card }: { card: ShipWithStatus }) {
-  const { ship, latest, fuelSisa, siAda, spalAda, stocks } = card;
+  const { ship, latest, fuelSisa, siAda, spalAda, stocks, ruteAsal, ruteTujuan } = card;
   const [fuelOpen, setFuelOpen] = useState(false);
+
+  const ruteLabel =
+    ruteAsal || ruteTujuan
+      ? `${ruteAsal || "?"} → ${ruteTujuan || "?"}`
+      : null;
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border bg-card p-4 transition-shadow hover:shadow-md">
@@ -152,6 +157,13 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
             </span>
           )}
         </div>
+
+        {ruteLabel && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Rute:</span>
+            <span className="truncate font-medium">{ruteLabel}</span>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 border-t pt-3 pl-1 text-sm text-muted-foreground">
