@@ -22,12 +22,14 @@ const DEFAULT_PERMISSIONS = [
   { id: "ship.manage", label: "Kelola Kapal", description: "Input & edit kapal dan data pelayaran" },
   { id: "activity.manage", label: "Input Aktivitas", description: "Mencatat aktivitas harian kapal" },
   { id: "stock.manage", label: "Input Fuel Harian", description: "Mencatat stok fuel harian kapal" },
+  { id: "document.view", label: "Melihat Dokumen", description: "Lihat daftar dokumen & notifikasi kedaluwarsa" },
+  { id: "document.manage", label: "Kelola Dokumen", description: "Tambah, ubah, dan hapus dokumen" },
 ];
 
 const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  superadmin: ["dashboard.view", "user.view", "user.manage", "settings.manage", "ship.view", "ship.manage", "activity.manage", "stock.manage"],
-  admin: ["dashboard.view", "user.view", "user.manage", "ship.view", "ship.manage", "activity.manage", "stock.manage"],
-  user: ["dashboard.view", "ship.view"],
+  superadmin: ["dashboard.view", "user.view", "user.manage", "settings.manage", "ship.view", "ship.manage", "activity.manage", "stock.manage", "document.view", "document.manage"],
+  admin: ["dashboard.view", "user.view", "user.manage", "ship.view", "ship.manage", "activity.manage", "stock.manage", "document.view", "document.manage"],
+  user: ["dashboard.view", "ship.view", "document.view"],
 };
 
 const ACTIVITY_CATEGORIES = [

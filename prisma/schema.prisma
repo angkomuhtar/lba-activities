@@ -128,3 +128,17 @@ model StockRecord {
 
   @@map("stock_records")
 }
+
+model Document {
+  id         String    @id @default(uuid())
+  nama       String
+  nomor      String
+  tglTerbit  DateTime?
+  tglExpire  DateTime?
+  catatan    String?
+  createdById String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("documents")
+}

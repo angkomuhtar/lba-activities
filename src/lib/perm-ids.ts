@@ -9,4 +9,6 @@ export const PERMS = {
   shipManage: "ship.manage",
   activityManage: "activity.manage",
   stockManage: "stock.manage",
+  documentView: "document.view",
+  documentManage: "document.manage",
 } as const;

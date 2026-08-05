@@ -120,6 +120,20 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
   const ruteLabel =
     ruteAsal || ruteTujuan ? `${ruteAsal || "?"} → ${ruteTujuan || "?"}` : null;
 
+  const hasStatus = latest?.status === "hijau" || latest?.status === "kuning" || latest?.status === "merah";
+
+  const headerBg = cn(
+    latest?.status === "hijau" && "bg-emerald-500",
+    latest?.status === "kuning" && "bg-amber-400",
+    latest?.status === "merah" && "bg-red-500",
+    !hasStatus && "bg-card",
+  );
+
+  const headerText = hasStatus ? "text-white" : "text-foreground";
+  const headerSub = hasStatus ? "text-white/80" : "text-muted-foreground";
+  const iconBg = hasStatus ? "bg-white/20" : "bg-muted";
+  const iconColor = hasStatus ? "text-white" : "text-muted-foreground";
+
   return (
     <div className='group relative flex flex-col overflow-hidden rounded-xl border bg-card p-4 transition-shadow hover:shadow-md'>
       <span
@@ -129,28 +143,27 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         )}
       />
 
-      <div className='flex items-start justify-between gap-3 pl-1'>
+      <div className={cn('flex items-start justify-between gap-3 rounded-lg px-3 py-2 pl-2', headerBg)}>
         <Link
           href={`/ships/${ship.id}`}
           className='flex min-w-0 items-center gap-3'>
-          <span className='flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted'>
-            <Ship className='size-5 text-muted-foreground' />
+          <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconBg)}>
+            <Ship className={cn('size-5', iconColor)} />
           </span>
           <div className='min-w-0'>
-            <p className='truncate font-semibold leading-tight group-hover:underline'>
+            <p className={cn('truncate font-semibold leading-tight group-hover:underline', headerText)}>
               {ship.nama}
             </p>
-            <p className='truncate text-sm text-muted-foreground'>
+            <p className={cn('truncate text-sm', headerSub)}>
               {ship.muatan || "Muatan tidak diisi"}
             </p>
           </div>
         </Link>
         <Badge
           className={cn(
-            "shrink-0",
-            latest?.status === "hijau" && "bg-emerald-500/15 text-emerald-600",
-            latest?.status === "kuning" && "bg-amber-400/15 text-amber-600",
-            latest?.status === "merah" && "bg-red-500/15 text-red-600",
+            hasStatus
+              ? "bg-white/20 text-white"
+              : "bg-muted text-muted-foreground",
           )}>
           {statusText(latest?.status ?? null)}
         </Badge>

@@ -11,6 +11,8 @@ export const DEFAULT_PERMISSIONS: { id: Permission; label: string; description: 
   { id: "ship.manage", label: "Kelola Kapal", description: "Input & edit kapal dan data pelayaran" },
   { id: "activity.manage", label: "Input Aktivitas", description: "Mencatat aktivitas harian kapal" },
   { id: "stock.manage", label: "Input Fuel Harian", description: "Mencatat stok fuel harian kapal" },
+  { id: "document.view", label: "Melihat Dokumen", description: "Lihat daftar dokumen & notifikasi kedaluwarsa" },
+  { id: "document.manage", label: "Kelola Dokumen", description: "Tambah, ubah, dan hapus dokumen" },
 ];
 
 // Default permission per system role (dipakai seeding & fallback)
@@ -24,6 +26,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "ship.manage",
     "activity.manage",
     "stock.manage",
+    "document.view",
+    "document.manage",
   ],
   admin: [
     "dashboard.view",
@@ -33,8 +37,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "ship.manage",
     "activity.manage",
     "stock.manage",
+    "document.view",
+    "document.manage",
   ],
-  user: ["dashboard.view", "ship.view"],
+  user: ["dashboard.view", "ship.view", "document.view"],
 };
 
 // Role bawaan (label) yang ditanam saat seeding

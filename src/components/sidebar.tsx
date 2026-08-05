@@ -8,6 +8,7 @@ import {
   Compass,
   PenLine,
   Fuel,
+  FileText,
   LogOut,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
@@ -25,6 +26,7 @@ export default async function Sidebar({ role }: SidebarProps) {
   const canViewShips = await can(role, PERMS.shipView);
   const canManageActivity = await can(role, PERMS.activityManage);
   const canManageStock = await can(role, PERMS.stockManage);
+  const canViewDocuments = await can(role, PERMS.documentView);
 
   return (
     <aside className='hidden w-64 shrink-0 flex-col border-r bg-card md:flex h-screen'>
@@ -76,6 +78,14 @@ export default async function Sidebar({ role }: SidebarProps) {
             href='/stocks'
             icon={<Fuel className='size-4' />}
             label='Fuel Harian'
+          />
+        )}
+
+        {canViewDocuments && (
+          <NavLink
+            href='/documents'
+            icon={<FileText className='size-4' />}
+            label='Document'
           />
         )}
 

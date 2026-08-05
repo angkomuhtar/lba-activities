@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, Circle, Compass, Ship as ShipIcon } from "lucide-react";
+import { AlertTriangle, CalendarClock, Circle, Compass, FileText, Ship as ShipIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { getShipsWithStatus } from "@/lib/ships";
 import { getPersistedAlerts, getVoyagesPerShipMonthly } from "@/lib/voyages";
+import { getExpiringDocuments } from "@/lib/documents";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,10 +35,13 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
   if (!(await can(user.role, PERMS.shipView))) redirect("/login");
 
-  const [data, alerts, perShip] = await Promise.all([
+  const canViewDocuments = await can(user.role, PERMS.documentView);
+
+  const [data, alerts, perShip, expiringDocs] = await Promise.all([
     getShipsWithStatus(),
     getPersistedAlerts(2),
     getVoyagesPerShipMonthly(),
+    canViewDocuments ? getExpiringDocuments(30) : Promise.resolve([]),
   ]);
 
   const count = (s: "hijau" | "kuning" | "merah" | null) =>
@@ -175,6 +179,57 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {canViewDocuments && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarClock className="size-4 text-amber-600" />
+              Dokumen Akan Kedaluwarsa ({expiringDocs.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expiringDocs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Tidak ada dokumen yang akan kedaluwarsa dalam 30 hari ke depan.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {expiringDocs.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href="/documents"
+                    className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg",
+                        doc.expired ? "bg-red-500/15 text-red-600" : "bg-amber-400/15 text-amber-600",
+                      )}
+                    >
+                      <FileText className="size-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {doc.nama}
+                        <span className="ml-2 text-muted-foreground">{doc.nomor}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.expired
+                          ? `Sudah kedaluwarsa ${Math.abs(doc.days)} hari lalu (${formatDate(doc.tglExpire)})`
+                          : doc.days === 0
+                            ? `Kedaluwarsa hari ini (${formatDate(doc.tglExpire)})`
+                            : `Akan kedaluwarsa dalam ${doc.days} hari (${formatDate(doc.tglExpire)})`}
+                      </p>
+                    </div>
+                    {doc.expired && <BadgeAlert status="merah" />}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <ShipBoard data={data} />
     </div>
