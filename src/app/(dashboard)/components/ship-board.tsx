@@ -129,10 +129,10 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     !hasStatus && "bg-card",
   );
 
-  const headerText = hasStatus ? "text-white" : "text-foreground";
-  const headerSub = hasStatus ? "text-white/80" : "text-muted-foreground";
-  const iconBg = hasStatus ? "bg-white/20" : "bg-muted";
-  const iconColor = hasStatus ? "text-white" : "text-muted-foreground";
+  const headerText = hasStatus ? "text-black" : "text-foreground";
+  const headerSub = hasStatus ? "text-black/70" : "text-muted-foreground";
+  const iconBg = hasStatus ? "bg-white/30" : "bg-muted";
+  const iconColor = hasStatus ? "text-black" : "text-muted-foreground";
 
   return (
     <div className='group relative flex flex-col overflow-hidden rounded-xl border bg-card p-4 transition-shadow hover:shadow-md'>
@@ -162,7 +162,7 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         <Badge
           className={cn(
             hasStatus
-              ? "bg-white/20 text-white"
+              ? "bg-white/30 text-black"
               : "bg-muted text-muted-foreground",
           )}>
           {statusText(latest?.status ?? null)}
