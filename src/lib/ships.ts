@@ -25,8 +25,12 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
   ]);
 
   const latestActByShip = new Map<string, (typeof activities)[number]>();
+  const activitiesByShip = new Map<string, (typeof activities)[number][]>();
   for (const act of activities) {
     if (!latestActByShip.has(act.shipId)) latestActByShip.set(act.shipId, act);
+    const arr = activitiesByShip.get(act.shipId) ?? [];
+    arr.push(act);
+    activitiesByShip.set(act.shipId, arr);
   }
 
   const stocksByShip = new Map<string, (typeof stocks)[number][]>();
@@ -65,6 +69,13 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
       ruteAsal: voyage?.ruteAsal ?? null,
       ruteTujuan: voyage?.ruteTujuan ?? null,
+      activities: (activitiesByShip.get(ship.id) ?? []).map((a) => ({
+        id: a.id,
+        status: a.status,
+        aktivitas: a.aktivitas,
+        tanggal: a.tanggal.toISOString(),
+        catatan: a.catatan,
+      })),
       stocks: shipStocks.map((r) => ({
         id: r.id,
         tanggal: r.tanggal.toISOString(),

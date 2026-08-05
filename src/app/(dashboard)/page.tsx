@@ -51,11 +51,11 @@ export default async function DashboardPage() {
     { label: "Perhatian", value: alerts.length, icon: AlertTriangle, className: "text-red-600" },
   ];
 
-  // sumbu bulan: gabungan semua bulan yang muncul, ambil 6 terakhir (ter-sort).
-  const allMonths = Array.from(
-    new Set(perShip.flatMap((s) => Object.keys(s.byMonth))),
-  ).sort();
-  const months = allMonths.slice(-7);
+  // sumbu bulan: selalu tampilkan bulan ini dan bulan lalu (2 kolom terakhir).
+  const now = new Date();
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const months = [monthKey(lastMonth), monthKey(now)];
 
   return (
     <div className="space-y-6">

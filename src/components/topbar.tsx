@@ -13,7 +13,7 @@ export default function Topbar({ title, username }: TopbarProps) {
     .join("");
 
   return (
-    <header className='flex h-16 items-center border-b bg-card px-4 md:px-6'>
+    <header className='flex py-4 items-center border-b bg-card px-4 md:px-6'>
       <div className='flex items-center gap-3'>
         <h1 className='text-lg font-semibold'>{title}</h1>
       </div>

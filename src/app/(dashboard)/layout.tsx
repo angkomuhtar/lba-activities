@@ -7,7 +7,9 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default async function DashboardLayout({ children }: DashboardLayoutProps) {
+export default async function DashboardLayout({
+  children,
+}: DashboardLayoutProps) {
   const user = await getSessionUser();
 
   if (!user) {
@@ -15,11 +17,11 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   }
 
   return (
-    <div className="flex min-h-svh">
+    <div className='flex min-h-svh'>
       <Sidebar role={user.role} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar title="Dashboard" username={user.username} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+      <div className='flex min-w-0 flex-1 flex-col h-screen'>
+        <Topbar title='Dashboard' username={user.username} />
+        <main className='flex-1 p-4 md:p-6 overflow-y-auto'>{children}</main>
       </div>
     </div>
   );

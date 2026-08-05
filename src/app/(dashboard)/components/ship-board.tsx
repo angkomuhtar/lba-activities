@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileCheck2, FileX2, Fuel as FuelIcon, Search, Ship, X } from "lucide-react";
+import { FileCheck2, FileX2, Fuel as FuelIcon, PenLine, Search, Ship, X } from "lucide-react";
 import type { ShipWithStatus } from "@/lib/ship-status";
 import { statusColor, statusText } from "@/lib/ship-status";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -84,8 +84,9 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
 }
 
 function ShipCard({ card }: { card: ShipWithStatus }) {
-  const { ship, latest, fuelSisa, siAda, spalAda, stocks, ruteAsal, ruteTujuan } = card;
+  const { ship, latest, fuelSisa, siAda, spalAda, stocks, ruteAsal, ruteTujuan, activities } = card;
   const [fuelOpen, setFuelOpen] = useState(false);
+  const [activitiesOpen, setActivitiesOpen] = useState(false);
 
   const ruteLabel =
     ruteAsal || ruteTujuan
@@ -136,6 +137,23 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
           </span>
         </button>
 
+        <button
+          type="button"
+          onClick={() => setActivitiesOpen(true)}
+          className="flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-muted"
+        >
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <PenLine className="size-4" />
+            Lihat Aktivitas
+          </span>
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            {activities.length > 0 ? `${activities.length} catatan` : "Tidak ada"}
+            {activities.length > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">· lihat</span>
+            )}
+          </span>
+        </button>
+
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Dokumen:</span>
           {siAda ? (
@@ -181,6 +199,70 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
           onClose={() => setFuelOpen(false)}
         />
       )}
+
+      {activitiesOpen && (
+        <ActivitiesModal
+          shipName={ship.nama}
+          activities={activities}
+          onClose={() => setActivitiesOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ActivitiesModal({
+  shipName,
+  activities,
+  onClose,
+}: {
+  shipName: string;
+  activities: ShipWithStatus["activities"];
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[80vh] w-full max-w-lg overflow-auto rounded-xl border bg-background p-4 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">Aktivitas Harian — {shipName}</h3>
+            <p className="text-sm text-muted-foreground">Riwayat aktivitas terbaru.</p>
+          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} title="Tutup">
+            <X className="size-4" />
+          </Button>
+        </div>
+
+        {activities.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Belum ada aktivitas.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {activities.slice(0, 50).map((act) => (
+              <div key={act.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60">
+                <span className={cn("size-2 shrink-0 rounded-full", statusColor(act.status))} />
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium">{act.aktivitas}</span>
+                  {act.catatan && (
+                    <span className="ml-2 truncate text-xs text-muted-foreground">{act.catatan}</span>
+                  )}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{formatDate(act.tanggal)}</span>
+              </div>
+            ))}
+            {activities.length > 50 && (
+              <p className="pt-2 text-center text-xs text-muted-foreground">
+                Menampilkan 50 dari {activities.length} catatan.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

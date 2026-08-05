@@ -10,6 +10,13 @@ export type ShipWithStatus = {
   spalAda: boolean;
   ruteAsal: string | null;
   ruteTujuan: string | null;
+  activities: {
+    id: string;
+    status: ActivityStatus;
+    aktivitas: string;
+    tanggal: string;
+    catatan: string | null;
+  }[];
   stocks: {
     id: string;
     tanggal: string;
