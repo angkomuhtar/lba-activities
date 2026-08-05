@@ -6,13 +6,16 @@
     "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:migrate:prod": "dotenvx run -f .env.prod -- prisma migrate deploy",
+    "db:seed:prod": "dotenvx run -f .env.prod -- prisma db seed"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

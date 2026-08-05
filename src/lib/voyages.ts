@@ -198,7 +198,7 @@ export async function getPersistedAlerts(minDays = 2): Promise<PersistedAlert[]>
     if (!isSameDay(last.tanggal)) continue; // tidak ada catatan hari ini, lewati
 
     const status = last.status as "kuning" | "merah";
-    if (status !== "kuning" && status !== "merah") continue;
+    if (status !== "merah") continue; // hanya status merah
 
     const run: (typeof acts)[number][] = [last];
     for (let i = acts.length - 2; i >= 0; i--) {
@@ -207,7 +207,10 @@ export async function getPersistedAlerts(minDays = 2): Promise<PersistedAlert[]>
       run.unshift(act);
     }
 
-    if (run.length >= minDays) {
+    // "Waiting Dokumen" baru muncul setelah 3 hari, aktivitas lain 2 hari.
+    const requiredDays = last.aktivitas === "Waiting Dokumen" ? 3 : minDays;
+
+    if (run.length >= requiredDays) {
       alerts.push({
         shipId: ship.id,
         shipName: ship.nama,

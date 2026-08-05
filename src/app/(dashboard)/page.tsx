@@ -93,13 +93,13 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="size-4 text-red-600" />
-              Perhatian — Kuning/Merah {">"} 2 Hari
+              Perhatian — Merah
             </CardTitle>
           </CardHeader>
           <CardContent>
             {alerts.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Tidak ada kapal dengan aktivitas kuning/merah yang bertahan {">"} 2 hari.
+                Tidak ada kapal dengan aktivitas merah (2 hari, khusus Waiting Dokumen 3 hari).
               </p>
             ) : (
               <div className="space-y-3">
@@ -109,12 +109,7 @@ export default async function DashboardPage() {
                     href={`/ships/${alert.shipId}`}
                     className="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
                   >
-                    <span
-                      className={cn(
-                        "mt-1 size-2.5 shrink-0 rounded-full",
-                        alert.status === "kuning" ? "bg-amber-400" : "bg-red-500",
-                      )}
-                    />
+                    <span className="mt-1 size-2.5 shrink-0 rounded-full bg-red-500" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">
                         {alert.shipName}
