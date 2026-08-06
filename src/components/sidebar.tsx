@@ -9,12 +9,14 @@ import {
   PenLine,
   Fuel,
   FileText,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { NavLink } from "@/components/nav-link";
+import { NavSubmenu } from "@/components/nav-submenu";
 
 interface SidebarProps {
   role: string;
@@ -48,6 +50,14 @@ export default async function Sidebar({ role }: SidebarProps) {
           icon={<LayoutDashboard className='size-4' />}
           label='Dashboard'
         />
+
+        {canViewShips && (
+          <NavSubmenu
+            icon={<BarChart3 className='size-4' />}
+            label='Laporan'
+            items={[{ href: '/laporan/aktivitas', label: 'Laporan Aktivitas' }]}
+          />
+        )}
 
         {canViewShips && (
           <NavLink

@@ -61,6 +61,10 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
   return ships.map((ship) => {
     const shipStocks = stocksByShip.get(ship.id) ?? [];
     const voyage = currentVoyageByShip.get(ship.id) ?? null;
+    // Hanya aktivitas milik voyage terakhir/berjalan yang tampil di modal kartu.
+    const voyageActivities = (activitiesByShip.get(ship.id) ?? []).filter(
+      (a) => a.voyageId === voyage?.id,
+    );
     return {
       ship: { id: ship.id, nama: ship.nama, muatan: ship.muatan },
       latest: latestActByShip.get(ship.id) ?? null,
@@ -69,7 +73,7 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
       ruteAsal: voyage?.ruteAsal ?? null,
       ruteTujuan: voyage?.ruteTujuan ?? null,
-      activities: (activitiesByShip.get(ship.id) ?? []).map((a) => ({
+      activities: voyageActivities.map((a) => ({
         id: a.id,
         status: a.status,
         aktivitas: a.aktivitas,

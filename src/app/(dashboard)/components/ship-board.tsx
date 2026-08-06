@@ -280,7 +280,7 @@ function ActivitiesModal({
           <div>
             <h3 className='font-semibold'>Aktivitas Harian — {shipName}</h3>
             <p className='text-sm text-muted-foreground'>
-              Riwayat aktivitas terbaru.
+              Aktivitas pada pelayaran terakhir.
             </p>
           </div>
           <Button
