@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { useActionState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { ShipActivity } from "@prisma/client";
 import { Loader2, Trash2 } from "lucide-react";
 import { createActivity, deleteActivity, type ActionResult } from "@/app/actions/ships";
@@ -21,6 +22,7 @@ interface ActivitiesClientProps {
   })[];
   voyageCounts: Record<string, number>;
   canManage: boolean;
+  selectedShipId: string;
 }
 
 export function ActivitiesClient({
@@ -29,19 +31,21 @@ export function ActivitiesClient({
   activities,
   voyageCounts,
   canManage,
+  selectedShipId,
 }: ActivitiesClientProps) {
-  const [shipId, setShipId] = useState(ships[0]?.id ?? "");
+  const router = useRouter();
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
-    (prev, formData) => createActivity(shipId, prev, formData),
+    (prev, formData) => createActivity(selectedShipId || ships[0]?.id || "", prev, formData),
     undefined,
   );
 
-  const hasVoyage = shipId ? (voyageCounts[shipId] ?? 0) > 0 : false;
+  const hasVoyage =
+    (selectedShipId || ships[0]?.id || "") !== "" &&
+    (voyageCounts[selectedShipId || ships[0]?.id || ""] ?? 0) > 0;
 
-  const filtered = useMemo(
-    () => (shipId ? activities.filter((a) => a.shipId === shipId) : activities),
-    [activities, shipId],
-  );
+  const setFilter = (id: string) => {
+    router.push(id ? `/activities?ship=${id}` : "/activities");
+  };
 
   return (
     <div className="space-y-6">
@@ -70,8 +74,8 @@ export function ActivitiesClient({
               <Label htmlFor="kapal">Kapal</Label>
               <select
                 id="kapal"
-                value={shipId}
-                onChange={(e) => setShipId(e.target.value)}
+                value={selectedShipId || ""}
+                onChange={(e) => setFilter(e.target.value)}
                 required
                 disabled={!canManage || ships.length === 0}
                 className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
@@ -85,7 +89,7 @@ export function ActivitiesClient({
               </select>
             </div>
 
-            {shipId && !hasVoyage && (
+            {selectedShipId && !hasVoyage && (
               <p className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-600">
                 Belum ada pelayaran untuk kapal ini. Tambahkan pelayaran dahulu di halaman kapal (Data
                 Pelayaran) sebelum input aktivitas.
@@ -121,7 +125,11 @@ export function ActivitiesClient({
             </div>
 
             {canManage ? (
-              <Button type="submit" className="w-full" disabled={pending || !shipId || !hasVoyage}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={pending || !selectedShipId || !hasVoyage}
+              >
                 {pending && <Loader2 className="size-4 animate-spin" />}
                 Simpan Aktivitas
               </Button>
@@ -141,10 +149,10 @@ export function ActivitiesClient({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setShipId("")}
+                    onClick={() => setFilter("")}
                     className={cn(
                       "rounded-full border px-3 py-1 text-xs transition-colors",
-                      !shipId
+                      !selectedShipId
                         ? "border-primary bg-primary text-primary-foreground"
                         : "border-border bg-background text-muted-foreground hover:bg-accent",
                     )}
@@ -155,10 +163,10 @@ export function ActivitiesClient({
                     <button
                       key={s.id}
                       type="button"
-                      onClick={() => setShipId(s.id)}
+                      onClick={() => setFilter(s.id)}
                       className={cn(
                         "rounded-full border px-3 py-1 text-xs transition-colors",
-                        shipId === s.id
+                        selectedShipId === s.id
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-border bg-background text-muted-foreground hover:bg-accent",
                       )}
@@ -171,12 +179,12 @@ export function ActivitiesClient({
             </div>
 
             <div className="divide-y">
-              {filtered.length === 0 ? (
+              {activities.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Belum ada aktivitas tercatat.
                 </p>
               ) : (
-                filtered.map((act) => (
+                activities.map((act) => (
                   <div key={act.id} className="flex items-start gap-3 px-4 py-3">
                     <span className={cn("mt-1 size-2.5 shrink-0 rounded-full", statusColor(act.status))} />
                     <div className="min-w-0 flex-1">

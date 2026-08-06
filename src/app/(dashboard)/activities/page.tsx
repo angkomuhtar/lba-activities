@@ -7,7 +7,12 @@ import { ActivitiesClient } from "./activities-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function ActivitiesPage() {
+export default async function ActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ship?: string }>;
+}) {
+  const { ship } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (!(await can(user.role, PERMS.shipView))) redirect("/");
@@ -18,8 +23,8 @@ export default async function ActivitiesPage() {
     prisma.ship.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
     prisma.activityCategory.findMany({ orderBy: { nama: "asc" } }),
     prisma.shipActivity.findMany({
+      where: ship ? { shipId: ship } : {},
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
-      take: 100,
       include: {
         ship: { select: { nama: true } },
         voyage: { select: { ruteAsal: true, ruteTujuan: true, siNomor: true } },
@@ -27,6 +32,8 @@ export default async function ActivitiesPage() {
     }),
     prisma.voyage.groupBy({ by: ["shipId"], _count: { _all: true } }),
   ]);
+
+  const selectedShipId = ship && ships.some((s) => s.id === ship) ? ship : "";
 
   const voyageCounts: Record<string, number> = {};
   for (const g of voyageGroup) {
@@ -51,6 +58,7 @@ export default async function ActivitiesPage() {
       activities={enriched}
       voyageCounts={voyageCounts}
       canManage={canManage}
+      selectedShipId={selectedShipId}
     />
   );
 }
