@@ -12,7 +12,7 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
 
   const ids = ships.map((s) => s.id);
 
-  const [activities, stocks, voyages] = await Promise.all([
+  const [activities, stocks, voyages, refills] = await Promise.all([
     prisma.shipActivity.findMany({
       where: { shipId: { in: ids } },
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
@@ -22,6 +22,10 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
     }),
     prisma.voyage.findMany({ where: { shipId: { in: ids } } }),
+    prisma.fuelRefill.findMany({
+      where: { shipId: { in: ids } },
+      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+    }),
   ]);
 
   const latestActByShip = new Map<string, (typeof activities)[number]>();
@@ -38,6 +42,13 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
     const arr = stocksByShip.get(rec.shipId) ?? [];
     arr.push(rec);
     stocksByShip.set(rec.shipId, arr);
+  }
+
+  const refillsByShip = new Map<string, (typeof refills)[number][]>();
+  for (const rf of refills) {
+    const arr = refillsByShip.get(rf.shipId) ?? [];
+    arr.push(rf);
+    refillsByShip.set(rf.shipId, arr);
   }
 
   // Voyage terbaru/berjalan per kapal: prioritas yang masih aktif (tglEnd kosong),
@@ -88,6 +99,12 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
         ae: r.ae.toString(),
         sisaStok: r.sisaStok.toString(),
       })),
+      refills: (refillsByShip.get(ship.id) ?? []).map((rf) => ({
+        id: rf.id,
+        tanggal: rf.tanggal.toISOString(),
+        jumlah: rf.jumlah.toString(),
+        catatan: rf.catatan,
+      })),
     };
   });
 }
@@ -104,6 +121,7 @@ export async function getShipDetail(id: string) {
       },
       activities: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
       stocks: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
+      refills: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
     },
   });
   return ship;

@@ -38,13 +38,16 @@ export function ActivitiesClient({
     (prev, formData) => createActivity(selectedShipId || ships[0]?.id || "", prev, formData),
     undefined,
   );
+  const [navPending, startNav] = useTransition();
 
   const hasVoyage =
     (selectedShipId || ships[0]?.id || "") !== "" &&
     (voyageCounts[selectedShipId || ships[0]?.id || ""] ?? 0) > 0;
 
   const setFilter = (id: string) => {
-    router.push(id ? `/activities?ship=${id}` : "/activities");
+    startNav(() => {
+      router.push(id ? `/activities?ship=${id}` : "/activities");
+    });
   };
 
   return (
@@ -178,8 +181,14 @@ export function ActivitiesClient({
               </div>
             </div>
 
-            <div className="divide-y">
-              {activities.length === 0 ? (
+            <div className="relative">
+              {navPending && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+                  <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              <div className={cn("divide-y", navPending && "opacity-50")}>
+                {activities.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                   Belum ada aktivitas tercatat.
                 </p>
@@ -210,6 +219,7 @@ export function ActivitiesClient({
                   </div>
                 ))
               )}
+              </div>
             </div>
           </div>
         </div>

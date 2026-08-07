@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { assignVoyageToActivity } from "@/lib/voyages";
+import { recomputeShipStock } from "@/lib/stocks";
 
 export type ActionResult = { error?: string; success?: string } | undefined;
 
@@ -376,6 +377,8 @@ export async function createStock(
     },
   });
 
+  await recomputeShipStock(shipId);
+
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/");
   return { success: `Data fuel berhasil disimpan (sisa = ${sisaStok.toString()}).` };
@@ -391,7 +394,65 @@ export async function deleteStock(id: string): Promise<ActionResult> {
   if (!rec) return { error: "Data fuel tidak ditemukan." };
 
   await prisma.stockRecord.delete({ where: { id } });
+  await recomputeShipStock(rec.shipId);
   revalidatePath(`/ships/${rec.shipId}`);
   revalidatePath("/");
   return { success: "Data fuel berhasil dihapus." };
+}
+
+const refillSchema = z.object({
+  tanggal: z.string().min(1, "Tanggal wajib diisi."),
+  jumlah: z.coerce.number().positive("Jumlah pengisian harus lebih dari 0."),
+  catatan: z.string().trim().optional().nullable(),
+});
+
+export async function createRefill(
+  shipId: string,
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    await requireStockManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const parsed = refillSchema.safeParse({
+    tanggal: formData.get("tanggal"),
+    jumlah: formData.get("jumlah"),
+    catatan: formData.get("catatan") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await prisma.fuelRefill.create({
+    data: {
+      shipId,
+      tanggal: parseDate(parsed.data.tanggal)!,
+      jumlah: new Prisma.Decimal(parsed.data.jumlah),
+      catatan: parsed.data.catatan || null,
+      createdById: (await getSessionUser())?.id,
+    },
+  });
+
+  await recomputeShipStock(shipId);
+
+  revalidatePath(`/ships/${shipId}`);
+  revalidatePath("/");
+  return { success: "Pengisian fuel berhasil dicatat." };
+}
+
+export async function deleteRefill(id: string): Promise<ActionResult> {
+  try {
+    await requireStockManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const rf = await prisma.fuelRefill.findUnique({ where: { id } });
+  if (!rf) return { error: "Data pengisian tidak ditemukan." };
+
+  await prisma.fuelRefill.delete({ where: { id } });
+  await recomputeShipStock(rf.shipId);
+  revalidatePath(`/ships/${rf.shipId}`);
+  revalidatePath("/");
+  return { success: "Data pengisian berhasil dihapus." };
 }

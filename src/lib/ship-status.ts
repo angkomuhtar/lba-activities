@@ -25,6 +25,12 @@ export type ShipWithStatus = {
     ae: string;
     sisaStok: string;
   }[];
+  refills: {
+    id: string;
+    tanggal: string;
+    jumlah: string;
+    catatan: string | null;
+  }[];
 };
 
 export function statusColor(status: ActivityStatus | null): string {
