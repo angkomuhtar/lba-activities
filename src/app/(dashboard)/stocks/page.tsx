@@ -14,14 +14,9 @@ export default async function StocksPage() {
 
   const canManage = await can(user.role, PERMS.stockManage);
 
-  const [ships, stocks, refills] = await Promise.all([
+  const [ships, stocks] = await Promise.all([
     prisma.ship.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
     prisma.stockRecord.findMany({
-      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
-      take: 200,
-      include: { ship: { select: { nama: true } } },
-    }),
-    prisma.fuelRefill.findMany({
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
       take: 200,
       include: { ship: { select: { nama: true } } },
@@ -38,7 +33,6 @@ export default async function StocksPage() {
     <StocksClient
       ships={ships}
       stocks={stocks}
-      refills={refills}
       prevByShip={prevByShip}
       canManage={canManage}
     />

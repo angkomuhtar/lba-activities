@@ -124,7 +124,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
           <div>
             <CardTitle>Fuel Harian (ME / AE)</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Stok awal otomatis diambil dari sisa kemarin. Sisa = stok awal + pengisian − ME − AE.
+              Stok awal otomatis diambil dari sisa kemarin. Sisa = stok awal − ME − AE.
             </p>
           </div>
           {canManageStock && (
@@ -138,7 +138,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
           )}
         </CardHeader>
         <CardContent>
-          <StockList stocks={ship.stocks} refills={ship.refills} canManage={canManageStock} />
+          <StockList stocks={ship.stocks} canManage={canManageStock} />
         </CardContent>
       </Card>
     </div>

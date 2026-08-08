@@ -8,7 +8,6 @@ import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { assignVoyageToActivity } from "@/lib/voyages";
-import { recomputeShipStock } from "@/lib/stocks";
 
 export type ActionResult = { error?: string; success?: string } | undefined;
 
@@ -325,7 +324,9 @@ const stockSchema = z.object({
   tanggal: z.string().min(1, "Tanggal wajib diisi."),
   me: z.coerce.number().min(0, "ME harus angka tidak negatif."),
   ae: z.coerce.number().min(0, "AE harus angka tidak negatif."),
+  pengisian: z.coerce.number().min(0, "Pengisian harus angka tidak negatif.").optional().nullable(),
   stokAwal: z.coerce.number().optional().nullable(),
+  catatan: z.string().trim().optional().nullable(),
 });
 
 export async function createStock(
@@ -343,7 +344,9 @@ export async function createStock(
     tanggal: formData.get("tanggal"),
     me: formData.get("me"),
     ae: formData.get("ae"),
+    pengisian: formData.get("pengisian") || 0,
     stokAwal: formData.get("stokAwal") || null,
+    catatan: formData.get("catatan") || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -364,20 +367,24 @@ export async function createStock(
     stokAwal = new Prisma.Decimal(parsed.data.stokAwal);
   }
 
-  const sisaStok = stokAwal.sub(new Prisma.Decimal(parsed.data.me)).sub(new Prisma.Decimal(parsed.data.ae));
+  const pengisian = new Prisma.Decimal(parsed.data.pengisian ?? 0);
+  const sisaStok = stokAwal
+    .add(pengisian)
+    .sub(new Prisma.Decimal(parsed.data.me))
+    .sub(new Prisma.Decimal(parsed.data.ae));
 
   await prisma.stockRecord.create({
     data: {
       shipId,
       tanggal: D,
       stokAwal,
+      pengisian,
       me: new Prisma.Decimal(parsed.data.me),
       ae: new Prisma.Decimal(parsed.data.ae),
       sisaStok,
+      catatan: parsed.data.catatan || null,
     },
   });
-
-  await recomputeShipStock(shipId);
 
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/");
@@ -394,65 +401,7 @@ export async function deleteStock(id: string): Promise<ActionResult> {
   if (!rec) return { error: "Data fuel tidak ditemukan." };
 
   await prisma.stockRecord.delete({ where: { id } });
-  await recomputeShipStock(rec.shipId);
   revalidatePath(`/ships/${rec.shipId}`);
   revalidatePath("/");
   return { success: "Data fuel berhasil dihapus." };
-}
-
-const refillSchema = z.object({
-  tanggal: z.string().min(1, "Tanggal wajib diisi."),
-  jumlah: z.coerce.number().positive("Jumlah pengisian harus lebih dari 0."),
-  catatan: z.string().trim().optional().nullable(),
-});
-
-export async function createRefill(
-  shipId: string,
-  _prevState: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  try {
-    await requireStockManage();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  const parsed = refillSchema.safeParse({
-    tanggal: formData.get("tanggal"),
-    jumlah: formData.get("jumlah"),
-    catatan: formData.get("catatan") || null,
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
-  await prisma.fuelRefill.create({
-    data: {
-      shipId,
-      tanggal: parseDate(parsed.data.tanggal)!,
-      jumlah: new Prisma.Decimal(parsed.data.jumlah),
-      catatan: parsed.data.catatan || null,
-      createdById: (await getSessionUser())?.id,
-    },
-  });
-
-  await recomputeShipStock(shipId);
-
-  revalidatePath(`/ships/${shipId}`);
-  revalidatePath("/");
-  return { success: "Pengisian fuel berhasil dicatat." };
-}
-
-export async function deleteRefill(id: string): Promise<ActionResult> {
-  try {
-    await requireStockManage();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-  const rf = await prisma.fuelRefill.findUnique({ where: { id } });
-  if (!rf) return { error: "Data pengisian tidak ditemukan." };
-
-  await prisma.fuelRefill.delete({ where: { id } });
-  await recomputeShipStock(rf.shipId);
-  revalidatePath(`/ships/${rf.shipId}`);
-  revalidatePath("/");
-  return { success: "Data pengisian berhasil dihapus." };
 }

@@ -60,7 +60,6 @@ model Ship {
   voyages   Voyage[]
   activities ShipActivity[]
   stocks    StockRecord[]
-  refills   FuelRefill[]
   createdById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,6 +120,7 @@ model StockRecord {
   ship      Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
   tanggal   DateTime
   stokAwal  Decimal
+  pengisian Decimal  @default(0)
   me        Decimal
   ae        Decimal
   sisaStok  Decimal
@@ -128,20 +128,6 @@ model StockRecord {
   createdAt DateTime @default(now())
 
   @@map("stock_records")
-}
-
-model FuelRefill {
-  id        String   @id @default(uuid())
-  shipId    String
-  ship      Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  tanggal   DateTime
-  jumlah    Decimal
-  catatan   String?
-  createdById String?
-  createdAt DateTime @default(now())
-
-  @@index([shipId])
-  @@map("fuel_refills")
 }
 
 model Document {

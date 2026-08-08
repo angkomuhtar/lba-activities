@@ -113,7 +113,6 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     ruteAsal,
     ruteTujuan,
     activities,
-    refills,
   } = card;
   const [fuelOpen, setFuelOpen] = useState(false);
   const [activitiesOpen, setActivitiesOpen] = useState(false);
@@ -246,7 +245,6 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         <FuelModal
           shipName={ship.nama}
           stocks={stocks}
-          refills={refills}
           onClose={() => setFuelOpen(false)}
         />
       )}
@@ -339,23 +337,12 @@ function ActivitiesModal({
 function FuelModal({
   shipName,
   stocks,
-  refills,
   onClose,
 }: {
   shipName: string;
   stocks: ShipWithStatus["stocks"];
-  refills: ShipWithStatus["refills"];
   onClose: () => void;
 }) {
-  const refillByDay = new Map<string, string>();
-  for (const r of refills) {
-    const key = new Date(r.tanggal).toLocaleDateString("en-CA");
-    refillByDay.set(
-      key,
-      (parseFloat(refillByDay.get(key) ?? "0") + parseFloat(r.jumlah)).toString(),
-    );
-  }
-
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'
@@ -367,7 +354,7 @@ function FuelModal({
           <div>
             <h3 className='font-semibold'>Fuel Harian — {shipName}</h3>
             <p className='text-sm text-muted-foreground'>
-              Riwayat pemakaian & pengisian fuel.
+              Riwayat pemakaian fuel (ME / AE).
             </p>
           </div>
           <Button
@@ -404,9 +391,7 @@ function FuelModal({
                     {formatNumber(rec.stokAwal)}
                   </TableCell>
                   <TableCell className='text-right'>
-                    {formatNumber(
-                      refillByDay.get(new Date(rec.tanggal).toLocaleDateString("en-CA")) ?? "0",
-                    )}
+                    {formatNumber(rec.pengisian)}
                   </TableCell>
                   <TableCell className='text-right'>
                     {formatNumber(rec.me)}

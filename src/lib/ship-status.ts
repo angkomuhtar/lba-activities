@@ -21,14 +21,10 @@ export type ShipWithStatus = {
     id: string;
     tanggal: string;
     stokAwal: string;
+    pengisian: string;
     me: string;
     ae: string;
     sisaStok: string;
-  }[];
-  refills: {
-    id: string;
-    tanggal: string;
-    jumlah: string;
     catatan: string | null;
   }[];
 };
