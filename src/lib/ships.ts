@@ -65,6 +65,12 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
     const voyageActivities = (activitiesByShip.get(ship.id) ?? []).filter(
       (a) => a.voyageId === voyage?.id,
     );
+    const actDate = (name: string): string | null => {
+      const found = voyageActivities
+        .filter((a) => a.aktivitas === name)
+        .sort((a, b) => a.tanggal.getTime() - b.tanggal.getTime());
+      return found[0] ? found[0].tanggal.toISOString() : null;
+    };
     return {
       ship: { id: ship.id, nama: ship.nama, muatan: ship.muatan },
       latest: latestActByShip.get(ship.id) ?? null,
@@ -73,6 +79,10 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
       ruteAsal: voyage?.ruteAsal ?? null,
       ruteTujuan: voyage?.ruteTujuan ?? null,
+      loadingStart: actDate("Start Loading"),
+      loadingFinish: actDate("Finish Loading"),
+      bongkarStart: actDate("Start Bongkar"),
+      bongkarFinish: actDate("Finish Bongkar"),
       activities: voyageActivities.map((a) => ({
         id: a.id,
         status: a.status,

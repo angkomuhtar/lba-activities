@@ -40,12 +40,19 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
   const [filter, setFilter] = useState<Filter>("semua");
 
   const filtered = useMemo(() => {
-    return data.filter(({ ship, latest }) => {
-      if (filter !== "semua" && latest?.status !== filter) return false;
-      if (query && !ship.nama.toLowerCase().includes(query.toLowerCase()))
-        return false;
-      return true;
-    });
+    const statusOrder: Record<string, number> = { merah: 0, kuning: 1, hijau: 2, "-": 3 };
+    return data
+      .filter(({ ship, latest }) => {
+        if (filter !== "semua" && latest?.status !== filter) return false;
+        if (query && !ship.nama.toLowerCase().includes(query.toLowerCase()))
+          return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          (statusOrder[a.latest?.status ?? "-"] ?? 3) -
+          (statusOrder[b.latest?.status ?? "-"] ?? 3),
+      );
   }, [data, query, filter]);
 
   return (
@@ -112,6 +119,10 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     stocks,
     ruteAsal,
     ruteTujuan,
+    loadingStart,
+    loadingFinish,
+    bongkarStart,
+    bongkarFinish,
     activities,
   } = card;
   const [fuelOpen, setFuelOpen] = useState(false);
@@ -120,7 +131,10 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
   const ruteLabel =
     ruteAsal || ruteTujuan ? `${ruteAsal || "?"} → ${ruteTujuan || "?"}` : null;
 
-  const hasStatus = latest?.status === "hijau" || latest?.status === "kuning" || latest?.status === "merah";
+  const hasStatus =
+    latest?.status === "hijau" ||
+    latest?.status === "kuning" ||
+    latest?.status === "merah";
 
   const headerBg = cn(
     latest?.status === "hijau" && "bg-emerald-500",
@@ -143,18 +157,30 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         )}
       />
 
-      <div className={cn('flex items-start justify-between gap-3 rounded-lg px-3 py-2 pl-2', headerBg)}>
+      <div
+        className={cn(
+          "flex items-start justify-between gap-3 rounded-lg px-3 py-2 pl-2",
+          headerBg,
+        )}>
         <Link
           href={`/ships/${ship.id}`}
           className='flex min-w-0 items-center gap-3'>
-          <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconBg)}>
-            <Ship className={cn('size-5', iconColor)} />
+          <span
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-lg",
+              iconBg,
+            )}>
+            <Ship className={cn("size-5", iconColor)} />
           </span>
           <div className='min-w-0'>
-            <p className={cn('truncate font-semibold leading-tight group-hover:underline', headerText)}>
+            <p
+              className={cn(
+                "truncate font-semibold leading-tight group-hover:underline",
+                headerText,
+              )}>
               {ship.nama}
             </p>
-            <p className={cn('truncate text-sm', headerSub)}>
+            <p className={cn("truncate text-sm", headerSub)}>
               {ship.muatan || "Muatan tidak diisi"}
             </p>
           </div>
@@ -216,6 +242,32 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
             <span className='truncate font-medium'>{ruteLabel}</span>
           </div>
         )}
+
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Start Loading:</span>
+          <span className='truncate font-medium'>
+            {loadingStart ? formatDate(loadingStart) : "?"}
+          </span>
+        </div>
+
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Finish Loading:</span>
+          <span className='truncate font-medium'>
+            {loadingFinish ? formatDate(loadingFinish) : "?"}
+          </span>
+        </div>
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Start Bongkar:</span>
+          <span className='truncate font-medium'>
+            {bongkarStart ? formatDate(bongkarStart) : "?"}
+          </span>
+        </div>
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Finish Bongkar:</span>
+          <span className='truncate font-medium'>
+            {bongkarFinish ? formatDate(bongkarFinish) : "?"}
+          </span>
+        </div>
       </div>
 
       <div className='mt-3 border-t pt-3 pl-1 text-sm text-muted-foreground'>
