@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, X } from "lucide-react";
 import type { ActivityStatus } from "@prisma/client";
-import { statusText } from "@/lib/ship-status";
+import { statusColor, statusText } from "@/lib/ship-status";
 import { formatDate } from "@/lib/format";
 import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
@@ -28,12 +28,45 @@ interface LaporanAktivitasClientProps {
   }[];
 }
 
+type ActivityItem = LaporanAktivitasClientProps["activities"][number];
+
+type LaporanRow = {
+  shipId: string;
+  shipName: string;
+  voyageLabel: string | null;
+  aktivitas: string;
+  items: ActivityItem[];
+};
+
+function buildRows(activities: ActivityItem[]): LaporanRow[] {
+  const rows: LaporanRow[] = [];
+  const byKey = new Map<string, LaporanRow>();
+  for (const a of activities) {
+    const key = `${a.shipId}|${a.voyageLabel ?? ""}|${a.aktivitas}`;
+    let row = byKey.get(key);
+    if (!row) {
+      row = {
+        shipId: a.shipId,
+        shipName: a.shipName,
+        voyageLabel: a.voyageLabel,
+        aktivitas: a.aktivitas,
+        items: [],
+      };
+      byKey.set(key, row);
+      rows.push(row);
+    }
+    row.items.push(a);
+  }
+  return rows;
+}
+
 export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasClientProps) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [shipId, setShipId] = useState("all");
   const [aktivitas, setAktivitas] = useState("all");
   const [status, setStatus] = useState<"all" | ActivityStatus>("all");
+  const [detail, setDetail] = useState<LaporanRow | null>(null);
 
   const aktivitasOptions = useMemo(
     () => Array.from(new Set(activities.map((a) => a.aktivitas).filter(Boolean))).sort(),
@@ -57,8 +90,10 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
   const total = filtered.length;
   const count = (s: ActivityStatus) => filtered.filter((a) => a.status === s).length;
 
+  const groupedRows = useMemo(() => buildRows(filtered), [filtered]);
+
   const page = usePage();
-  const { rows, page: safePage, totalPages } = paginate(filtered, page);
+  const { rows, page: safePage, totalPages } = paginate(groupedRows, page);
 
   const summary = [
     { label: "Total", value: total, className: "" },
@@ -69,7 +104,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
 
   const handlePrint = () => window.print();
   const handleExportCsv = () => {
-    const rows = [
+    const csvRows = [
       ["Tanggal", "Kapal", "Voyage", "Aktivitas", "Status", "Catatan"],
       ...filtered.map((a) => [
         formatDate(a.tanggal),
@@ -80,7 +115,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
         a.catatan ?? "",
       ]),
     ];
-    const csv = rows
+    const csv = csvRows
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
       .join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
@@ -98,7 +133,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
         <div>
           <h1 className="text-lg font-semibold">Laporan Aktivitas</h1>
           <p className="text-sm text-muted-foreground">
-            Rekap aktivitas harian kapal. Filter berdasarkan periode & kapal.
+            Rekap aktivitas harian kapal per rute. Filter berdasarkan periode & kapal.
           </p>
         </div>
         <div className="flex gap-2 print:hidden">
@@ -183,7 +218,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
         <div className="border-b px-4 py-3">
           <h2 className="font-semibold">Detail Aktivitas</h2>
         </div>
-        {filtered.length === 0 ? (
+        {groupedRows.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">
             Tidak ada aktivitas pada periode & filter yang dipilih.
           </p>
@@ -192,44 +227,132 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Tanggal</TableHead>
                   <TableHead>Kapal</TableHead>
-                  <TableHead>Voyage</TableHead>
+                  <TableHead>Rute</TableHead>
                   <TableHead>Aktivitas</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Catatan</TableHead>
+                  <TableHead className="text-right">Hari</TableHead>
+                  <TableHead className="text-right print:hidden">Detail</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="whitespace-nowrap">{formatDate(a.tanggal)}</TableCell>
-                    <TableCell className="font-medium">{a.shipName}</TableCell>
-                    <TableCell className="max-w-48 truncate text-sm text-muted-foreground">
-                      {a.voyageLabel ?? "-"}
-                    </TableCell>
-                    <TableCell>{a.aktivitas}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={cn(
-                          a.status === "hijau" && "bg-emerald-500/15 text-emerald-600",
-                          a.status === "kuning" && "bg-amber-400/15 text-amber-600",
-                          a.status === "merah" && "bg-red-500/15 text-red-600",
-                        )}
-                      >
-                        {statusText(a.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-56 truncate text-sm text-muted-foreground">
-                      {a.catatan ?? "-"}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {rows.map((r) => {
+                  const hari = new Set(r.items.map((i) => i.tanggal.slice(0, 10))).size;
+                  const statusCounts: Record<ActivityStatus, number> = {
+                    hijau: 0,
+                    kuning: 0,
+                    merah: 0,
+                  };
+                  for (const i of r.items) statusCounts[i.status]++;
+                  return (
+                    <TableRow key={`${r.shipId}|${r.voyageLabel ?? ""}|${r.aktivitas}`}>
+                      <TableCell className="font-medium">{r.shipName}</TableCell>
+                      <TableCell className="max-w-48 truncate text-sm text-muted-foreground">
+                        {r.voyageLabel ?? "-"}
+                      </TableCell>
+                      <TableCell>{r.aktivitas}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(["hijau", "kuning", "merah"] as ActivityStatus[]).map(
+                            (s) =>
+                              statusCounts[s] > 0 && (
+                                <Badge
+                                  key={s}
+                                  className={cn(
+                                    "border-0 text-white",
+                                    s === "hijau" && "bg-emerald-500",
+                                    s === "kuning" && "bg-amber-400",
+                                    s === "merah" && "bg-red-500",
+                                  )}
+                                >
+                                  {statusText(s)}
+                                </Badge>
+                              ),
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{hari}</TableCell>
+                      <TableCell className="text-right print:hidden">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDetail(r)}
+                        >
+                          Detail
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
-        {filtered.length > 0 && <Pagination page={safePage} totalPages={totalPages} />}
+        {groupedRows.length > 0 && <Pagination page={safePage} totalPages={totalPages} />}
+      </div>
+
+      {detail && <AktivitasDetailModal row={detail} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
+function AktivitasDetailModal({
+  row,
+  onClose,
+}: {
+  row: LaporanRow;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[80vh] w-full max-w-lg overflow-auto rounded-xl border bg-background p-4 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold">
+              {row.shipName} — {row.aktivitas}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {row.voyageLabel ?? "Tanpa Voyage"} · {row.items.length} hari
+            </p>
+          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} title="Tutup">
+            <X className="size-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-1.5">
+          {row.items.map((a) => (
+            <div
+              key={a.id}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60"
+            >
+              <span className={cn("size-2 shrink-0 rounded-full", statusColor(a.status))} />
+              <span className="shrink-0 font-medium whitespace-nowrap">{formatDate(a.tanggal)}</span>
+              <Badge
+                className={cn(
+                  "shrink-0 border-0",
+                  a.status === "hijau" && "bg-emerald-500/15 text-emerald-600",
+                  a.status === "kuning" && "bg-amber-400/15 text-amber-600",
+                  a.status === "merah" && "bg-red-500/15 text-red-600",
+                )}
+              >
+                {statusText(a.status)}
+              </Badge>
+              {a.catatan && (
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {a.catatan}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
