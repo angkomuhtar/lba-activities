@@ -79,6 +79,7 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
       ruteAsal: voyage?.ruteAsal ?? null,
       ruteTujuan: voyage?.ruteTujuan ?? null,
+      shipper: voyage?.shipper ?? null,
       loadingStart: actDate("Start Loading"),
       loadingFinish: actDate("Finish Loading"),
       bongkarStart: actDate("Start Bongkar"),

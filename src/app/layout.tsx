@@ -19,7 +19,7 @@ const fontSerif = Roboto({
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Aplikasi dashboard sederhana",
+  description: "Lintas Bahtera Abadi Dashboard",
 };
 
 export default function RootLayout({

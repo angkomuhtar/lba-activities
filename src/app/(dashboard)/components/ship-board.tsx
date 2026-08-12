@@ -13,10 +13,12 @@ import {
 import type { ShipWithStatus } from "@/lib/ship-status";
 import { statusColor, statusText } from "@/lib/ship-status";
 import { formatDate, formatNumber } from "@/lib/format";
+import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -40,7 +42,12 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
   const [filter, setFilter] = useState<Filter>("semua");
 
   const filtered = useMemo(() => {
-    const statusOrder: Record<string, number> = { merah: 0, kuning: 1, hijau: 2, "-": 3 };
+    const statusOrder: Record<string, number> = {
+      merah: 0,
+      kuning: 1,
+      hijau: 2,
+      "-": 3,
+    };
     return data
       .filter(({ ship, latest }) => {
         if (filter !== "semua" && latest?.status !== filter) return false;
@@ -119,6 +126,7 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     stocks,
     ruteAsal,
     ruteTujuan,
+    shipper,
     loadingStart,
     loadingFinish,
     bongkarStart,
@@ -242,6 +250,11 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
             <span className='truncate font-medium'>{ruteLabel}</span>
           </div>
         )}
+
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Shipper:</span>
+          <span className='truncate font-medium'>{shipper ?? "?"}</span>
+        </div>
 
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-muted-foreground'>Start Loading:</span>
@@ -395,6 +408,9 @@ function FuelModal({
   stocks: ShipWithStatus["stocks"];
   onClose: () => void;
 }) {
+  const page = usePage("fuelPage");
+  const { rows, page: safePage, totalPages } = paginate(stocks, page);
+
   return (
     <div
       className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'
@@ -436,7 +452,7 @@ function FuelModal({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stocks.map((rec) => (
+              {rows.map((rec) => (
                 <TableRow key={rec.id}>
                   <TableCell>{formatDate(rec.tanggal)}</TableCell>
                   <TableCell className='text-right'>
@@ -458,6 +474,9 @@ function FuelModal({
               ))}
             </TableBody>
           </Table>
+        )}
+        {stocks.length > 0 && (
+          <Pagination page={safePage} totalPages={totalPages} />
         )}
       </div>
     </div>

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ShipBoard } from "./components/ship-board";
+import { Pagination } from "@/components/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,12 @@ function shortMonth(key: string): string {
   return MONTH_LABEL[idx] ?? m;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page = "1" } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (!(await can(user.role, PERMS.shipView))) redirect("/login");
@@ -60,6 +66,12 @@ export default async function DashboardPage() {
   const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const months = [monthKey(lastMonth), monthKey(now)];
+
+  const PAGE_SIZE = 10;
+  const perShipTotalPages = Math.max(1, Math.ceil(perShip.length / PAGE_SIZE));
+  const parsed = Number(page);
+  const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), perShipTotalPages) : 1;
+  const perShipRows = perShip.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -156,7 +168,7 @@ export default async function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {perShip.map((s) => (
+                    {perShipRows.map((s) => (
                       <TableRow key={s.shipId}>
                         <TableCell className="font-medium">{s.shipName}</TableCell>
                         {months.map((m) => (
@@ -169,6 +181,7 @@ export default async function DashboardPage() {
                     ))}
                   </TableBody>
                 </Table>
+                {perShip.length > 0 && <Pagination page={pageNum} totalPages={perShipTotalPages} />}
               </div>
             )}
           </CardContent>

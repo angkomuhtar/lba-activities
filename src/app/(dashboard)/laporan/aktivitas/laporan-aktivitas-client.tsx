@@ -5,11 +5,13 @@ import { Download, Printer } from "lucide-react";
 import type { ActivityStatus } from "@prisma/client";
 import { statusText } from "@/lib/ship-status";
 import { formatDate } from "@/lib/format";
+import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface LaporanAktivitasClientProps {
@@ -54,6 +56,9 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
 
   const total = filtered.length;
   const count = (s: ActivityStatus) => filtered.filter((a) => a.status === s).length;
+
+  const page = usePage();
+  const { rows, page: safePage, totalPages } = paginate(filtered, page);
 
   const summary = [
     { label: "Total", value: total, className: "" },
@@ -196,7 +201,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((a) => (
+                {rows.map((a) => (
                   <TableRow key={a.id}>
                     <TableCell className="whitespace-nowrap">{formatDate(a.tanggal)}</TableCell>
                     <TableCell className="font-medium">{a.shipName}</TableCell>
@@ -224,6 +229,7 @@ export function LaporanAktivitasClient({ ships, activities }: LaporanAktivitasCl
             </Table>
           </div>
         )}
+        {filtered.length > 0 && <Pagination page={safePage} totalPages={totalPages} />}
       </div>
     </div>
   );

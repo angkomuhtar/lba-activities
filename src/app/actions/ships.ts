@@ -92,6 +92,7 @@ export async function deleteShip(id: string): Promise<ActionResult> {
 const voyageSchema = z.object({
   ruteAsal: z.string().trim().optional().nullable(),
   ruteTujuan: z.string().trim().optional().nullable(),
+  shipper: z.string().trim().optional().nullable(),
   tglStart: z.string().optional().nullable(),
   tglEnd: z.string().optional().nullable(),
   siNomor: z.string().trim().optional().nullable(),
@@ -104,6 +105,7 @@ const voyageSchema = z.object({
 type VoyageData = {
   ruteAsal: string | null;
   ruteTujuan: string | null;
+  shipper: string | null;
   tglStart: Date | null;
   tglEnd: Date | null;
   siNomor: string | null;
@@ -119,6 +121,7 @@ async function voyagePayload(
   const parsed = voyageSchema.safeParse({
     ruteAsal: formData.get("ruteAsal") || null,
     ruteTujuan: formData.get("ruteTujuan") || null,
+    shipper: formData.get("shipper") || null,
     tglStart: formData.get("tglStart") || null,
     tglEnd: formData.get("tglEnd") || null,
     siNomor: formData.get("siNomor") || null,
@@ -135,6 +138,7 @@ async function voyagePayload(
     data: {
       ruteAsal: parsed.data.ruteAsal || null,
       ruteTujuan: parsed.data.ruteTujuan || null,
+      shipper: parsed.data.shipper || null,
       tglStart: parseDate(parsed.data.tglStart),
       tglEnd: parseDate(parsed.data.tglEnd),
       siNomor: parsed.data.siNomor || null,

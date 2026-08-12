@@ -8,10 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { UserActions } from "./user-actions";
 import { CreateUserForm } from "./create-user-form";
 import { roleLabel } from "@/lib/role-label";
+import { Pagination } from "@/components/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page = "1" } = await searchParams;
   const sessionUser = await getSessionUser();
 
   if (!sessionUser) {
@@ -30,6 +36,12 @@ export default async function UsersPage() {
   // Sembunyikan user dengan role superadmin jika session user bukan superadmin
   const visibleUsers =
     sessionUser.role === "superadmin" ? users : users.filter((u) => u.role !== "superadmin");
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.max(1, Math.ceil(visibleUsers.length / PAGE_SIZE));
+  const parsed = Number(page);
+  const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), totalPages) : 1;
+  const rows = visibleUsers.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -60,7 +72,7 @@ export default async function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {visibleUsers.map((user) => (
+                {rows.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.username}</TableCell>
                     <TableCell>{user.name ?? "-"}</TableCell>
@@ -89,6 +101,7 @@ export default async function UsersPage() {
                 ))}
               </TableBody>
             </Table>
+            {visibleUsers.length > 0 && <Pagination page={pageNum} totalPages={totalPages} />}
           </div>
         </div>
       </div>

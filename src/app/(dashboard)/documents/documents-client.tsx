@@ -9,10 +9,12 @@ import {
   type ActionResult,
 } from "@/app/actions/documents";
 import { formatDate } from "@/lib/format";
+import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export interface DocumentItem {
@@ -49,6 +51,9 @@ export function DocumentsClient({ documents, canManage }: DocumentsClientProps) 
     const days = daysUntil(doc.tglExpire);
     return days >= 0 && days <= EXPIRY_WARNING_DAYS;
   };
+
+  const page = usePage();
+  const { rows, page: safePage, totalPages } = paginate(documents, page);
 
   return (
     <div className="space-y-6">
@@ -141,7 +146,7 @@ export function DocumentsClient({ documents, canManage }: DocumentsClientProps) 
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {documents.map((doc) => {
+                    {rows.map((doc) => {
                       const soon = expiresSoon(doc);
                       return (
                         <TableRow key={doc.id}>
@@ -189,6 +194,7 @@ export function DocumentsClient({ documents, canManage }: DocumentsClientProps) 
                 </Table>
               </div>
             )}
+            {documents.length > 0 && <Pagination page={safePage} totalPages={totalPages} />}
           </div>
         </div>
       </div>

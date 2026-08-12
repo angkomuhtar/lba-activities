@@ -5,10 +5,12 @@ import type { StockRecord } from "@prisma/client";
 import { Loader2, Trash2 } from "lucide-react";
 import { createStock, deleteStock, type ActionResult } from "@/app/actions/ships";
 import { formatDate, formatNumber } from "@/lib/format";
+import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface StocksClientProps {
@@ -32,6 +34,9 @@ export function StocksClient({ ships, stocks, prevByShip, canManage }: StocksCli
     () => (shipId ? stocks.filter((s) => s.shipId === shipId) : stocks),
     [stocks, shipId],
   );
+
+  const page = usePage();
+  const { rows, page: safePage, totalPages } = paginate(filtered, page);
 
   return (
     <div className="space-y-6">
@@ -195,7 +200,7 @@ export function StocksClient({ ships, stocks, prevByShip, canManage }: StocksCli
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((rec) => (
+                    {rows.map((rec) => (
                       <TableRow key={rec.id}>
                         <TableCell>{formatDate(rec.tanggal)}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{rec.ship.nama}</TableCell>
@@ -216,6 +221,7 @@ export function StocksClient({ ships, stocks, prevByShip, canManage }: StocksCli
                 </Table>
               </div>
             )}
+            {filtered.length > 0 && <Pagination page={safePage} totalPages={totalPages} />}
           </div>
         </div>
       </div>

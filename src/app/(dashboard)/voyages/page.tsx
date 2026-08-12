@@ -31,6 +31,7 @@ export default async function VoyagesPage() {
     shipName: v.ship.nama,
     ruteAsal: v.ruteAsal,
     ruteTujuan: v.ruteTujuan,
+    shipper: v.shipper,
     tglStart: v.tglStart ? toInputDate(v.tglStart) : null,
     tglEnd: v.tglEnd ? toInputDate(v.tglEnd) : null,
     siNomor: v.siNomor,

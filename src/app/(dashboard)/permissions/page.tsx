@@ -14,15 +14,27 @@ import {
 } from "@/components/ui/table";
 import { CreatePermissionForm } from "./create-permission-form";
 import { DeletePermissionButton } from "./delete-permission-button";
+import { Pagination } from "@/components/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function PermissionsPage() {
+export default async function PermissionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page = "1" } = await searchParams;
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect("/login");
   if (!(await can(sessionUser.role, PERMS.settingsManage))) redirect("/");
 
   const permissions = await prisma.permission.findMany({ orderBy: { id: "asc" } });
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.max(1, Math.ceil(permissions.length / PAGE_SIZE));
+  const parsed = Number(page);
+  const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), totalPages) : 1;
+  const rows = permissions.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -50,7 +62,7 @@ export default async function PermissionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {permissions.map((p: Permission) => (
+                {rows.map((p: Permission) => (
                   <TableRow key={p.id}>
                     <TableCell>
                       <code className="rounded bg-muted px-2 py-0.5 text-xs">
@@ -66,6 +78,7 @@ export default async function PermissionsPage() {
                 ))}
               </TableBody>
             </Table>
+            {permissions.length > 0 && <Pagination page={pageNum} totalPages={totalPages} />}
           </div>
         </div>
       </div>

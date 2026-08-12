@@ -31,6 +31,7 @@ export interface VoyageItem {
   shipName: string;
   ruteAsal: string | null;
   ruteTujuan: string | null;
+  shipper: string | null;
   tglStart: string | null;
   tglEnd: string | null;
   siNomor: string | null;
@@ -136,6 +137,7 @@ function longestActivity(
 type VoyageField =
   | "ruteAsal"
   | "ruteTujuan"
+  | "shipper"
   | "tglStart"
   | "tglEnd"
   | "siNomor"
@@ -146,6 +148,7 @@ type VoyageField =
 const FIELDS: { name: VoyageField; label: string; type?: string }[] = [
   { name: "ruteAsal", label: "Rute Asal" },
   { name: "ruteTujuan", label: "Rute Tujuan" },
+  { name: "shipper", label: "Shipper" },
   { name: "tglStart", label: "Tanggal Mulai", type: "date" },
   { name: "tglEnd", label: "Tanggal Selesai", type: "date" },
   { name: "siNomor", label: "No. SI" },
@@ -272,6 +275,13 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
           </span>
         )}
       </div>
+
+      {voyage.shipper && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          <span className="text-muted-foreground">Shipper:</span>{" "}
+          <span className="font-medium">{voyage.shipper}</span>
+        </p>
+      )}
 
       {longest && (
         <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm">

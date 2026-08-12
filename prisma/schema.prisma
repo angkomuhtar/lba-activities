@@ -73,6 +73,7 @@ model Voyage {
   ship       Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
   ruteAsal   String?
   ruteTujuan String?
+  shipper    String?
   tglStart   DateTime?
   tglEnd     DateTime?
   siNomor    String?

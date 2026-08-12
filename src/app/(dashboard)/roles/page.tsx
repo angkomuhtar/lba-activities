@@ -17,15 +17,27 @@ import {
 } from "@/components/ui/table";
 import { CreateRoleForm } from "./create-role-form";
 import { DeleteRoleButton } from "./delete-role-button";
+import { Pagination } from "@/components/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function RolesPage() {
+export default async function RolesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page = "1" } = await searchParams;
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect("/login");
   if (!(await can(sessionUser.role, PERMS.settingsManage))) redirect("/");
 
   const roles = await prisma.role.findMany({ orderBy: { system: "desc" } });
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.max(1, Math.ceil(roles.length / PAGE_SIZE));
+  const parsed = Number(page);
+  const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), totalPages) : 1;
+  const rows = roles.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -53,7 +65,7 @@ export default async function RolesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {roles.map((role: Role) => (
+                {rows.map((role: Role) => (
                   <TableRow key={role.id}>
                     <TableCell>
                       <div className="font-medium">{role.label}</div>
@@ -85,6 +97,7 @@ export default async function RolesPage() {
                 ))}
               </TableBody>
             </Table>
+            {roles.length > 0 && <Pagination page={pageNum} totalPages={totalPages} />}
           </div>
         </div>
       </div>

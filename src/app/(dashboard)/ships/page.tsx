@@ -11,10 +11,16 @@ import { DeleteShipButton } from "./delete-ship-button";
 import { statusColor, statusText } from "@/lib/ships";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function ShipsPage() {
+export default async function ShipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page = "1" } = await searchParams;
   const sessionUser = await getSessionUser();
   if (!sessionUser) redirect("/login");
   if (!(await can(sessionUser.role, PERMS.shipView))) redirect("/");
@@ -25,6 +31,12 @@ export default async function ShipsPage() {
   });
 
   const canManage = await can(sessionUser.role, PERMS.shipManage);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.max(1, Math.ceil(ships.length / PAGE_SIZE));
+  const parsed = Number(page);
+  const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), totalPages) : 1;
+  const rows = ships.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -64,7 +76,7 @@ export default async function ShipsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  ships.map((ship) => {
+                  rows.map((ship) => {
                     const latest = ship.activities[0] ?? null;
                     return (
                       <TableRow key={ship.id}>
@@ -94,6 +106,7 @@ export default async function ShipsPage() {
                 )}
               </TableBody>
             </Table>
+            {ships.length > 0 && <Pagination page={pageNum} totalPages={totalPages} />}
           </div>
         </div>
       </div>
