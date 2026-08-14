@@ -127,6 +127,7 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     ruteAsal,
     ruteTujuan,
     shipper,
+    statusBayar,
     loadingStart,
     loadingFinish,
     bongkarStart,
@@ -250,6 +251,23 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
             <span className='truncate font-medium'>{ruteLabel}</span>
           </div>
         )}
+
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Status Pembayaran:</span>
+          {statusBayar ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                statusBayar === "DP"
+                  ? "bg-amber-400/15 text-amber-600"
+                  : "bg-emerald-500/15 text-emerald-600",
+              )}>
+              {statusBayar === "DP" ? "Down Payment" : "Lunas"}
+            </span>
+          ) : (
+            <span className='truncate font-medium'>Belum Ada</span>
+          )}
+        </div>
 
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-muted-foreground'>Shipper:</span>

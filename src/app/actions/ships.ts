@@ -93,6 +93,7 @@ const voyageSchema = z.object({
   ruteAsal: z.string().trim().optional().nullable(),
   ruteTujuan: z.string().trim().optional().nullable(),
   shipper: z.string().trim().optional().nullable(),
+  statusBayar: z.enum(["DP", "LUNAS"]).optional().nullable(),
   tglStart: z.string().optional().nullable(),
   tglEnd: z.string().optional().nullable(),
   siNomor: z.string().trim().optional().nullable(),
@@ -106,6 +107,7 @@ type VoyageData = {
   ruteAsal: string | null;
   ruteTujuan: string | null;
   shipper: string | null;
+  statusBayar: "DP" | "LUNAS" | null;
   tglStart: Date | null;
   tglEnd: Date | null;
   siNomor: string | null;
@@ -122,6 +124,7 @@ async function voyagePayload(
     ruteAsal: formData.get("ruteAsal") || null,
     ruteTujuan: formData.get("ruteTujuan") || null,
     shipper: formData.get("shipper") || null,
+    statusBayar: formData.get("statusBayar") || null,
     tglStart: formData.get("tglStart") || null,
     tglEnd: formData.get("tglEnd") || null,
     siNomor: formData.get("siNomor") || null,
@@ -139,6 +142,7 @@ async function voyagePayload(
       ruteAsal: parsed.data.ruteAsal || null,
       ruteTujuan: parsed.data.ruteTujuan || null,
       shipper: parsed.data.shipper || null,
+      statusBayar: parsed.data.statusBayar || null,
       tglStart: parseDate(parsed.data.tglStart),
       tglEnd: parseDate(parsed.data.tglEnd),
       siNomor: parsed.data.siNomor || null,

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import type { ActivityStatus } from "@prisma/client";
+import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 
 // Taut aktivitas ke voyage dengan aturan:
 // - voyage cocok jika tglStart <= D <= tglEnd, atau tglEnd kosong (masih berjalan).
@@ -100,6 +100,41 @@ export async function getVoyagesPerShipMonthly(): Promise<VoyagesPerShip[]> {
       shipName: s.nama,
       total: Object.values(map).reduce((a, b) => a + b, 0),
       byMonth: map,
+    };
+  });
+}
+
+export interface UnpaidVoyage {
+  id: string;
+  shipId: string;
+  shipName: string;
+  rute: string;
+  statusBayar: PaymentStatus | null;
+  selesai: boolean;
+}
+
+// Pelayaran yang belum lunas (Belum Ada / DP).
+export async function getUnpaidVoyages(): Promise<UnpaidVoyage[]> {
+  const voyages = await prisma.voyage.findMany({
+    where: { OR: [{ statusBayar: null }, { statusBayar: "DP" }] },
+    include: { ship: { select: { nama: true } } },
+    orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
+  });
+
+  return voyages.map((v) => {
+    const rute =
+      v.ruteAsal || v.ruteTujuan
+        ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}`
+        : v.siNomor
+          ? `SI ${v.siNomor}`
+          : "Pelayaran";
+    return {
+      id: v.id,
+      shipId: v.shipId,
+      shipName: v.ship.nama,
+      rute,
+      statusBayar: v.statusBayar,
+      selesai: Boolean(v.tglEnd),
     };
   });
 }

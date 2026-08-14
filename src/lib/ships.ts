@@ -80,6 +80,7 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       ruteAsal: voyage?.ruteAsal ?? null,
       ruteTujuan: voyage?.ruteTujuan ?? null,
       shipper: voyage?.shipper ?? null,
+      statusBayar: voyage?.statusBayar ?? null,
       loadingStart: actDate("Start Loading"),
       loadingFinish: actDate("Finish Loading"),
       bongkarStart: actDate("Start Bongkar"),

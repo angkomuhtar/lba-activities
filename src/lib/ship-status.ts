@@ -1,6 +1,6 @@
-import type { ActivityStatus } from "@prisma/client";
+import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 
-export type { ActivityStatus };
+export type { ActivityStatus, PaymentStatus };
 
 export type ShipWithStatus = {
   ship: { id: string; nama: string; muatan: string | null };
@@ -11,6 +11,7 @@ export type ShipWithStatus = {
   ruteAsal: string | null;
   ruteTujuan: string | null;
   shipper: string | null;
+  statusBayar: PaymentStatus | null;
   loadingStart: string | null;
   loadingFinish: string | null;
   bongkarStart: string | null;

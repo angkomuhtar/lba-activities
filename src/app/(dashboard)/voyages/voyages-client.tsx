@@ -9,7 +9,7 @@ import {
   updateVoyage,
   type ActionResult,
 } from "@/app/actions/ships";
-import type { ActivityStatus } from "@prisma/client";
+import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 import { statusColor } from "@/lib/ship-status";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ export interface VoyageItem {
   ruteAsal: string | null;
   ruteTujuan: string | null;
   shipper: string | null;
+  statusBayar: PaymentStatus | null;
   tglStart: string | null;
   tglEnd: string | null;
   siNomor: string | null;
@@ -157,6 +158,33 @@ const FIELDS: { name: VoyageField; label: string; type?: string }[] = [
   { name: "spalTanggal", label: "Tanggal SPAL", type: "date" },
 ];
 
+function StatusBayarField({
+  id,
+  defaultValue,
+  disabled,
+}: {
+  id: string;
+  defaultValue?: string | null;
+  disabled: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Status Pembayaran</Label>
+      <select
+        id={id}
+        name="statusBayar"
+        defaultValue={defaultValue ?? ""}
+        disabled={disabled}
+        className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+      >
+        <option value="">Belum Ada</option>
+        <option value="DP">DP</option>
+        <option value="LUNAS">Lunas</option>
+      </select>
+    </div>
+  );
+}
+
 function AddVoyageForm({ ships }: { ships: { id: string; nama: string }[] }) {
   const [shipId, setShipId] = useState(ships[0]?.id ?? "");
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
@@ -205,6 +233,7 @@ function AddVoyageForm({ ships }: { ships: { id: string; nama: string }[] }) {
           </div>
         ))}
       </div>
+      <StatusBayarField id="statusBayar" disabled={pending} />
       <div className="space-y-2">
         <Label htmlFor="catatan">Catatan</Label>
         <Input id="catatan" name="catatan" disabled={pending} />
@@ -251,6 +280,18 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
       </div>
 
       <div className="mt-2 flex flex-wrap gap-2 text-xs">
+        {voyage.statusBayar && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+              voyage.statusBayar === "DP"
+                ? "bg-amber-400/15 text-amber-600"
+                : "bg-emerald-500/15 text-emerald-600",
+            )}
+          >
+            {voyage.statusBayar === "DP" ? "Down Payment" : "Lunas"}
+          </span>
+        )}
         {siAda ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-600">
             <FileCheck2 className="size-3.5" /> SI
@@ -348,6 +389,7 @@ function EditVoyageForm({ voyage, onCancel }: { voyage: VoyageItem; onCancel: ()
           </div>
         ))}
       </div>
+      <StatusBayarField id={`statusBayar-${voyage.id}`} defaultValue={voyage.statusBayar} disabled={pending} />
       <div className="space-y-2">
         <Label htmlFor={`catatan-${voyage.id}`}>Catatan</Label>
         <Input id={`catatan-${voyage.id}`} name="catatan" defaultValue={voyage.catatan ?? ""} disabled={pending} />

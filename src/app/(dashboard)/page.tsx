@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, CalendarClock, Circle, Compass, FileText, Ship as ShipIcon } from "lucide-react";
+import { AlertTriangle, CalendarClock, Circle, CircleDollarSign, Compass, FileText, Ship as ShipIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { getShipsWithStatus } from "@/lib/ships";
-import { getPersistedAlerts, getVoyagesPerShipMonthly } from "@/lib/voyages";
+import { getPersistedAlerts, getUnpaidVoyages, getVoyagesPerShipMonthly } from "@/lib/voyages";
 import { getExpiringDocuments } from "@/lib/documents";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { ShipBoard } from "./components/ship-board";
 import { Pagination } from "@/components/ui/pagination";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,11 @@ export default async function DashboardPage({
 
   const canViewDocuments = await can(user.role, PERMS.documentView);
 
-  const [data, alerts, perShip, expiringDocs] = await Promise.all([
+  const [data, alerts, perShip, unpaid, expiringDocs] = await Promise.all([
     getShipsWithStatus(),
     getPersistedAlerts(2),
     getVoyagesPerShipMonthly(),
+    getUnpaidVoyages(),
     canViewDocuments ? getExpiringDocuments(30) : Promise.resolve([]),
   ]);
 
@@ -100,7 +102,7 @@ export default async function DashboardPage({
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -182,6 +184,67 @@ export default async function DashboardPage({
                   </TableBody>
                 </Table>
                 {perShip.length > 0 && <Pagination page={pageNum} totalPages={perShipTotalPages} />}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CircleDollarSign className="size-4 text-amber-600" />
+              Pelayaran Belum Lunas ({unpaid.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {unpaid.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Semua pelayaran sudah lunas.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Kapal</TableHead>
+                      <TableHead>Rute</TableHead>
+                      <TableHead>Status Bayar</TableHead>
+                      <TableHead>Status Pelayaran</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {unpaid.map((v) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="font-medium">{v.shipName}</TableCell>
+                        <TableCell className="max-w-40 truncate text-sm text-muted-foreground">
+                          {v.rute}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "border-0",
+                              v.statusBayar === "DP"
+                                ? "bg-amber-400/15 text-amber-600"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {v.statusBayar === "DP" ? "DP" : "Belum Ada"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={cn(
+                              "border-0",
+                              v.selesai
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-sky-500/15 text-sky-600",
+                            )}
+                          >
+                            {v.selesai ? "Selesai" : "Berjalan"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
