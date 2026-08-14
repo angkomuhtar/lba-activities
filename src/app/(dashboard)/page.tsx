@@ -35,9 +35,9 @@ function shortMonth(key: string): string {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; unpaidPage?: string }>;
 }) {
-  const { page = "1" } = await searchParams;
+  const { page = "1", unpaidPage = "1" } = await searchParams;
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (!(await can(user.role, PERMS.shipView))) redirect("/login");
@@ -74,6 +74,15 @@ export default async function DashboardPage({
   const parsed = Number(page);
   const pageNum = Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), perShipTotalPages) : 1;
   const perShipRows = perShip.slice((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE);
+
+  const UNPAID_PAGE_SIZE = 8;
+  const unpaidTotalPages = Math.max(1, Math.ceil(unpaid.length / UNPAID_PAGE_SIZE));
+  const parsedUnpaid = Number(unpaidPage);
+  const unpaidPageNum =
+    Number.isFinite(parsedUnpaid) && parsedUnpaid > 0
+      ? Math.min(Math.floor(parsedUnpaid), unpaidTotalPages)
+      : 1;
+  const unpaidRows = unpaid.slice((unpaidPageNum - 1) * UNPAID_PAGE_SIZE, unpaidPageNum * UNPAID_PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -211,7 +220,7 @@ export default async function DashboardPage({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {unpaid.map((v) => (
+                    {unpaidRows.map((v) => (
                       <TableRow key={v.id}>
                         <TableCell className="font-medium">{v.shipName}</TableCell>
                         <TableCell className="max-w-40 truncate text-sm text-muted-foreground">
@@ -245,6 +254,9 @@ export default async function DashboardPage({
                     ))}
                   </TableBody>
                 </Table>
+                {unpaid.length > 0 && (
+                  <Pagination page={unpaidPageNum} totalPages={unpaidTotalPages} pageParam="unpaidPage" />
+                )}
               </div>
             )}
           </CardContent>
