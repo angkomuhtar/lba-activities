@@ -86,6 +86,7 @@ model Voyage {
   spalNomor  String?
   spalTanggal DateTime?
   statusBayar PaymentStatus?
+  invoiceNomor String?
   catatan    String?
   activities ShipActivity[]
   createdAt  DateTime       @default(now())

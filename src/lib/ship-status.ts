@@ -12,6 +12,7 @@ export type ShipWithStatus = {
   ruteTujuan: string | null;
   shipper: string | null;
   statusBayar: PaymentStatus | null;
+  invoiceNomor: string | null;
   loadingStart: string | null;
   loadingFinish: string | null;
   bongkarStart: string | null;

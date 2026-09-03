@@ -31,6 +31,7 @@ export interface VoyageItem {
   ruteTujuan: string | null;
   shipper: string | null;
   statusBayar: PaymentStatus | null;
+  invoiceNomor: string | null;
   tglStart: string | null;
   tglEnd: string | null;
   siNomor: string | null;
@@ -161,6 +162,23 @@ function StatusBayarField({
   );
 }
 
+function InvoiceNomorField({
+  id,
+  defaultValue,
+  disabled,
+}: {
+  id: string;
+  defaultValue?: string | null;
+  disabled: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>No. Invoice</Label>
+      <Input id={id} name="invoiceNomor" defaultValue={defaultValue ?? ""} disabled={disabled} />
+    </div>
+  );
+}
+
 function AddVoyageForm({ shipId }: { shipId: string }) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     (prev, formData) => createVoyage(shipId, prev, formData),
@@ -182,7 +200,10 @@ function AddVoyageForm({ shipId }: { shipId: string }) {
       )}
 
       <VoyageFields disabled={pending} />
-      <StatusBayarField id="statusBayar" disabled={pending} />
+      <div className="grid grid-cols-2 gap-3">
+        <StatusBayarField id="statusBayar" disabled={pending} />
+        <InvoiceNomorField id="invoiceNomor" disabled={pending} />
+      </div>
       <div className="space-y-2">
         <Label htmlFor="catatan">Catatan</Label>
         <Input id="catatan" name="catatan" disabled={pending} />
@@ -238,6 +259,11 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
             )}
           >
             {voyage.statusBayar === "DP" ? "Down Payment" : "Lunas"}
+          </span>
+        )}
+        {voyage.invoiceNomor && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
+            Invoice: {voyage.invoiceNomor}
           </span>
         )}
         {siAda ? (
@@ -333,7 +359,10 @@ function EditVoyageForm({ voyage, onCancel }: { voyage: VoyageItem; onCancel: ()
           </div>
         ))}
       </div>
-      <StatusBayarField id={`statusBayar-${voyage.id}`} defaultValue={voyage.statusBayar} disabled={pending} />
+      <div className="grid grid-cols-2 gap-3">
+        <StatusBayarField id={`statusBayar-${voyage.id}`} defaultValue={voyage.statusBayar} disabled={pending} />
+        <InvoiceNomorField id={`invoiceNomor-${voyage.id}`} defaultValue={voyage.invoiceNomor} disabled={pending} />
+      </div>
       <div className="space-y-2">
         <Label htmlFor={`catatan-${voyage.id}`}>Catatan</Label>
         <Input id={`catatan-${voyage.id}`} name="catatan" defaultValue={voyage.catatan ?? ""} disabled={pending} />

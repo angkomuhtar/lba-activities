@@ -128,6 +128,7 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     ruteTujuan,
     shipper,
     statusBayar,
+    invoiceNomor,
     loadingStart,
     loadingFinish,
     bongkarStart,
@@ -268,6 +269,13 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
             <span className='truncate font-medium'>Belum Ada</span>
           )}
         </div>
+
+        {invoiceNomor && (
+          <div className='flex items-center gap-2 text-sm'>
+            <span className='text-muted-foreground'>No. Invoice:</span>
+            <span className='truncate font-medium'>{invoiceNomor}</span>
+          </div>
+        )}
 
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-muted-foreground'>Shipper:</span>

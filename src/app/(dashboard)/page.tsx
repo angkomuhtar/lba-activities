@@ -339,6 +339,7 @@ export default async function DashboardPage({
                     <TableRow>
                       <TableHead>Kapal</TableHead>
                       <TableHead>Rute</TableHead>
+                      <TableHead>No. Invoice</TableHead>
                       <TableHead>Status Bayar</TableHead>
                       <TableHead>Status Pelayaran</TableHead>
                     </TableRow>
@@ -351,6 +352,9 @@ export default async function DashboardPage({
                         </TableCell>
                         <TableCell className='max-w-40 truncate text-sm text-muted-foreground'>
                           {v.rute}
+                        </TableCell>
+                        <TableCell className='text-sm text-muted-foreground'>
+                          {v.invoiceNomor ?? "-"}
                         </TableCell>
                         <TableCell>
                           <Badge

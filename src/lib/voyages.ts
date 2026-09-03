@@ -110,6 +110,7 @@ export interface UnpaidVoyage {
   shipName: string;
   rute: string;
   statusBayar: PaymentStatus | null;
+  invoiceNomor: string | null;
   selesai: boolean;
 }
 
@@ -134,6 +135,7 @@ export async function getUnpaidVoyages(): Promise<UnpaidVoyage[]> {
       shipName: v.ship.nama,
       rute,
       statusBayar: v.statusBayar,
+      invoiceNomor: v.invoiceNomor,
       selesai: Boolean(v.tglEnd),
     };
   });
