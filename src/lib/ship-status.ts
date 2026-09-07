@@ -34,6 +34,12 @@ export type ShipWithStatus = {
     sisaStok: string;
     catatan: string | null;
   }[];
+  nextPlan: {
+    id: string;
+    ruteAsal: string | null;
+    ruteTujuan: string | null;
+    eta: string | null;
+  } | null;
 };
 
 export function statusColor(status: ActivityStatus | null): string {

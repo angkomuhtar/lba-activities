@@ -8,7 +8,10 @@ export type { ShipWithStatus };
 
 // Semua kapal + status terbaru (aktivitas terakhir), sisa fuel, dan status dokumen.
 export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
-  const ships = await prisma.ship.findMany({ orderBy: { createdAt: "asc" } });
+  const ships = await prisma.ship.findMany({
+    orderBy: { createdAt: "asc" },
+    include: { voyagePlan: true },
+  });
 
   const ids = ships.map((s) => s.id);
 
@@ -103,6 +106,14 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
         sisaStok: r.sisaStok.toString(),
         catatan: r.catatan,
       })),
+      nextPlan: ship.voyagePlan
+        ? {
+            id: ship.voyagePlan.id,
+            ruteAsal: ship.voyagePlan.ruteAsal,
+            ruteTujuan: ship.voyagePlan.ruteTujuan,
+            eta: ship.voyagePlan.eta?.toISOString() ?? null,
+          }
+        : null,
     };
   });
 }

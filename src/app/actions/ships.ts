@@ -417,3 +417,93 @@ export async function deleteStock(id: string): Promise<ActionResult> {
   revalidatePath("/");
   return { success: "Data fuel berhasil dihapus." };
 }
+
+// ── Voyage Plan ──────────────────────────────────────────────────────────────
+
+const voyagePlanSchema = z.object({
+  ruteAsal: z.string().trim().optional().nullable(),
+  ruteTujuan: z.string().trim().optional().nullable(),
+  eta: z.string().optional().nullable(),
+});
+
+export async function upsertVoyagePlan(
+  shipId: string,
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    await requireManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const parsed = voyagePlanSchema.safeParse({
+    ruteAsal: formData.get("ruteAsal") || null,
+    ruteTujuan: formData.get("ruteTujuan") || null,
+    eta: formData.get("eta") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const data = {
+    ruteAsal: parsed.data.ruteAsal || null,
+    ruteTujuan: parsed.data.ruteTujuan || null,
+    eta: parseDate(parsed.data.eta),
+  };
+
+  await prisma.voyagePlan.upsert({
+    where: { shipId },
+    create: { shipId, ...data },
+    update: data,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/ships");
+  return { success: "Rencana pelayaran berhasil disimpan." };
+}
+
+export async function deleteVoyagePlan(planId: string): Promise<ActionResult> {
+  try {
+    await requireManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const plan = await prisma.voyagePlan.findUnique({ where: { id: planId } });
+  if (!plan) return { error: "Rencana pelayaran tidak ditemukan." };
+
+  await prisma.voyagePlan.delete({ where: { id: planId } });
+
+  revalidatePath("/");
+  revalidatePath("/ships");
+  return { success: "Rencana pelayaran berhasil dihapus." };
+}
+
+export async function realizeVoyagePlan(planId: string): Promise<ActionResult> {
+  try {
+    await requireManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const plan = await prisma.voyagePlan.findUnique({ where: { id: planId } });
+  if (!plan) return { error: "Rencana pelayaran tidak ditemukan." };
+
+  // Buat Voyage baru dari data plan, lalu hapus plan.
+  await prisma.$transaction([
+    prisma.voyage.create({
+      data: {
+        shipId: plan.shipId,
+        ruteAsal: plan.ruteAsal,
+        ruteTujuan: plan.ruteTujuan,
+        tglStart: plan.eta,
+      },
+    }),
+    prisma.voyagePlan.delete({ where: { id: planId } }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/ships");
+  revalidatePath(`/ships/${plan.shipId}`);
+  revalidatePath("/voyages");
+  return { success: "Pelayaran berhasil direalisasikan." };
+}

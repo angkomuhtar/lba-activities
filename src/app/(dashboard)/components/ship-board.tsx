@@ -1,13 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  CalendarClock,
   FileCheck2,
   FileX2,
   Fuel as FuelIcon,
+  Loader2,
+  MapPin,
+  Pencil,
+  Plus,
+  Rocket,
   Search,
   Ship,
+  Trash2,
   X,
 } from "lucide-react";
 import type { ShipWithStatus } from "@/lib/ship-status";
@@ -16,6 +23,7 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
@@ -27,6 +35,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  upsertVoyagePlan,
+  deleteVoyagePlan,
+  realizeVoyagePlan,
+  type ActionResult,
+} from "@/app/actions/ships";
 
 type Filter = "semua" | "hijau" | "kuning" | "merah";
 
@@ -134,9 +148,11 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     bongkarStart,
     bongkarFinish,
     activities,
+    nextPlan,
   } = card;
   const [fuelOpen, setFuelOpen] = useState(false);
   const [activitiesOpen, setActivitiesOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const ruteLabel =
     ruteAsal || ruteTujuan ? `${ruteAsal || "?"} → ${ruteTujuan || "?"}` : null;
@@ -332,6 +348,8 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         </button>
       </div>
 
+      <PlanSection plan={nextPlan} onEdit={() => setPlanOpen(true)} />
+
       {fuelOpen && (
         <FuelModal
           shipName={ship.nama}
@@ -347,6 +365,266 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
           onClose={() => setActivitiesOpen(false)}
         />
       )}
+
+      {planOpen && (
+        <PlanModal
+          shipId={ship.id}
+          plan={nextPlan}
+          onClose={() => setPlanOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PlanSection({
+  plan,
+  onEdit,
+}: {
+  plan: ShipWithStatus["nextPlan"];
+  onEdit: () => void;
+}) {
+  const [tPending, startTransition] = useTransition();
+  const [confirmRealize, setConfirmRealize] = useState(false);
+
+  const planRute =
+    plan && (plan.ruteAsal || plan.ruteTujuan)
+      ? `${plan.ruteAsal || "?"} → ${plan.ruteTujuan || "?"}`
+      : null;
+
+  if (!plan) {
+    return (
+      <div className='mt-3 space-y-2 border-t pt-3 pl-1'>
+        <div className='flex items-center justify-between'>
+          <span className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
+            <CalendarClock className='size-4' />
+            Pelayaran Selanjutnya
+          </span>
+        </div>
+        <p className='text-sm text-muted-foreground'>Belum ada rencana.</p>
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          className='gap-1.5'
+          onClick={onEdit}>
+          <Plus className='size-3.5' />
+          Tambah Plan
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className='mt-3 space-y-2 border-t pt-3 pl-1'>
+      <div className='flex items-center justify-between'>
+        <span className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
+          <CalendarClock className='size-4' />
+          Pelayaran Selanjutnya
+        </span>
+      </div>
+
+      <div className='space-y-1'>
+        <div className='flex items-center gap-2 text-sm'>
+          <MapPin className='size-3.5 text-muted-foreground' />
+          <span className='text-muted-foreground'>Rute:</span>
+          <span className='truncate font-medium'>
+            {planRute ?? "Belum diatur"}
+          </span>
+        </div>
+        <div className='flex items-center gap-2 text-sm'>
+          <CalendarClock className='size-3.5 text-muted-foreground' />
+          <span className='text-muted-foreground'>ETA:</span>
+          <span className='truncate font-medium'>
+            {plan.eta ? formatDate(plan.eta) : "Belum diatur"}
+          </span>
+        </div>
+      </div>
+
+      {!confirmRealize ? (
+        <div className='flex gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            className='gap-1.5'
+            onClick={onEdit}>
+            <Pencil className='size-3' />
+            Edit
+          </Button>
+          <Button
+            type='button'
+            variant='default'
+            size='sm'
+            className='gap-1.5 bg-emerald-600 hover:bg-emerald-700'
+            disabled={tPending}
+            onClick={() => setConfirmRealize(true)}>
+            <Rocket className='size-3' />
+            Realisasi
+          </Button>
+        </div>
+      ) : (
+        <div className='rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/30'>
+          <p className='mb-2 text-sm font-medium text-amber-800 dark:text-amber-300'>
+            Realisasikan plan ini menjadi pelayaran baru?
+          </p>
+          <div className='flex gap-2'>
+            <Button
+              type='button'
+              variant='default'
+              size='sm'
+              className='gap-1.5 bg-emerald-600 hover:bg-emerald-700'
+              disabled={tPending}
+              onClick={() =>
+                startTransition(async () => {
+                  await realizeVoyagePlan(plan.id);
+                  setConfirmRealize(false);
+                })
+              }>
+              {tPending ? (
+                <Loader2 className='size-3 animate-spin' />
+              ) : (
+                <Rocket className='size-3' />
+              )}
+              Ya, Realisasi
+            </Button>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              disabled={tPending}
+              onClick={() => setConfirmRealize(false)}>
+              Batal
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlanModal({
+  shipId,
+  plan,
+  onClose,
+}: {
+  shipId: string;
+  plan: ShipWithStatus["nextPlan"];
+  onClose: () => void;
+}) {
+  const [state, formAction, pending] = useActionState<ActionResult, FormData>(
+    upsertVoyagePlan.bind(null, shipId),
+    undefined,
+  );
+  const [delPending, startDelTransition] = useTransition();
+
+  // Konversi ISO date ke YYYY-MM-DD untuk input type=date
+  const etaDefault = plan?.eta ? plan.eta.slice(0, 10) : "";
+
+  // Tutup modal ketika berhasil simpan
+  if (state?.success) {
+    // Delay close agar revalidation selesai
+    setTimeout(() => onClose(), 0);
+  }
+
+  return (
+    <div
+      className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'
+      onClick={onClose}>
+      <div
+        className='w-full max-w-md rounded-xl border bg-background p-5 shadow-lg'
+        onClick={(e) => e.stopPropagation()}>
+        <div className='mb-4 flex items-center justify-between'>
+          <h3 className='font-semibold'>
+            {plan ? "Edit Rencana Pelayaran" : "Tambah Rencana Pelayaran"}
+          </h3>
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon'
+            onClick={onClose}
+            title='Tutup'>
+            <X className='size-4' />
+          </Button>
+        </div>
+
+        <form action={formAction} className='space-y-4'>
+          <div className='space-y-2'>
+            <Label htmlFor={`planAsal-${shipId}`}>Rute Asal</Label>
+            <Input
+              id={`planAsal-${shipId}`}
+              name='ruteAsal'
+              placeholder='Contoh: Samarinda'
+              defaultValue={plan?.ruteAsal ?? ""}
+            />
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor={`planTujuan-${shipId}`}>Rute Tujuan</Label>
+            <Input
+              id={`planTujuan-${shipId}`}
+              name='ruteTujuan'
+              placeholder='Contoh: Surabaya'
+              defaultValue={plan?.ruteTujuan ?? ""}
+            />
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor={`planEta-${shipId}`}>ETA (Tanggal Mulai)</Label>
+            <Input
+              id={`planEta-${shipId}`}
+              name='eta'
+              type='date'
+              defaultValue={etaDefault}
+            />
+          </div>
+
+          {state?.error && (
+            <p className='text-sm text-red-600'>{state.error}</p>
+          )}
+
+          <div className='flex items-center justify-between'>
+            <div className='flex gap-2'>
+              <Button type='submit' size='sm' disabled={pending}>
+                {pending ? (
+                  <Loader2 className='mr-1.5 size-3 animate-spin' />
+                ) : null}
+                Simpan
+              </Button>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                onClick={onClose}
+                disabled={pending}>
+                Batal
+              </Button>
+            </div>
+
+            {plan && (
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                className='gap-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30'
+                disabled={delPending}
+                onClick={() =>
+                  startDelTransition(async () => {
+                    await deleteVoyagePlan(plan.id);
+                    onClose();
+                  })
+                }>
+                {delPending ? (
+                  <Loader2 className='size-3 animate-spin' />
+                ) : (
+                  <Trash2 className='size-3' />
+                )}
+                Hapus Plan
+              </Button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

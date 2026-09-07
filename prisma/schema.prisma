@@ -65,6 +65,7 @@ model Ship {
   voyages   Voyage[]
   activities ShipActivity[]
   stocks    StockRecord[]
+  voyagePlan VoyagePlan?
   createdById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -150,4 +151,17 @@ model Document {
   updatedAt  DateTime  @updatedAt
 
   @@map("documents")
+}
+
+model VoyagePlan {
+  id         String    @id @default(uuid())
+  shipId     String    @unique
+  ship       Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  ruteAsal   String?   @map("rute_asal")
+  ruteTujuan String?   @map("rute_tujuan")
+  eta        DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("voyage_plans")
 }
