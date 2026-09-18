@@ -187,6 +187,67 @@ export async function getLongestActivityPerVoyage(voyageId: string): Promise<Lon
   return best;
 }
 
+export interface VoyageTrip {
+  id: string;
+  shipId: string;
+  shipName: string;
+  rute: string;
+  tglStart: string | null;
+  tglEnd: string | null;
+  jumlahHari: number | null;
+  activityCount: number;
+}
+
+function jumlahHari(tglStart: Date | null, tglEnd: Date | null): number | null {
+  if (!tglStart) return null;
+  const end = tglEnd ?? new Date();
+  const s = new Date(tglStart); s.setHours(0,0,0,0);
+  const e = new Date(end); e.setHours(0,0,0,0);
+  const ms = e.getTime() - s.getTime();
+  if (ms < 0) return null;
+  return Math.floor(ms / 86400000) + 1;
+}
+
+export async function getVoyageTrips(): Promise<VoyageTrip[]> {
+  const voyages = await prisma.voyage.findMany({
+    include: { ship: { select: { nama: true } }, _count: { select: { activities: true } } },
+    orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
+  });
+  return voyages.map((v) => {
+    const rute =
+      v.ruteAsal || v.ruteTujuan
+        ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}`
+        : v.siNomor
+          ? `SI ${v.siNomor}`
+          : "Pelayaran";
+    return {
+      id: v.id,
+      shipId: v.shipId,
+      shipName: v.ship.nama,
+      rute,
+      tglStart: v.tglStart ? v.tglStart.toISOString() : null,
+      tglEnd: v.tglEnd ? v.tglEnd.toISOString() : null,
+      jumlahHari: jumlahHari(v.tglStart, v.tglEnd),
+      activityCount: v._count.activities,
+    };
+  });
+}
+
+export async function getVoyageActivities(voyageId: string) {
+  const acts = await prisma.shipActivity.findMany({
+    where: { voyageId },
+    orderBy: [{ tanggal: "asc" }, { createdAt: "asc" }],
+    select: { id: true, tanggal: true, aktivitas: true, status: true, catatan: true },
+  });
+  return acts.map((a) => ({
+    id: a.id,
+    tanggal: a.tanggal.toISOString(),
+    aktivitas: a.aktivitas,
+    status: a.status as ActivityStatus,
+    catatan: a.catatan,
+  }));
+}
+
 export interface PersistedAlert {
   shipId: string;
   shipName: string;

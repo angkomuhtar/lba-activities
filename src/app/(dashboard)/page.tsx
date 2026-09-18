@@ -17,7 +17,9 @@ import {
   getPersistedAlerts,
   getUnpaidVoyages,
   getVoyagesPerShipMonthly,
+  getVoyageTrips,
 } from "@/lib/voyages";
+import { VoyageTripReport } from "./components/voyage-trip-report";
 import { getExpiringDocuments } from "@/lib/documents";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -69,12 +71,13 @@ export default async function DashboardPage({
 
   const canViewDocuments = await can(user.role, PERMS.documentView);
 
-  const [data, alerts, perShip, unpaid, expiringDocs] = await Promise.all([
+  const [data, alerts, perShip, unpaid, expiringDocs, trips] = await Promise.all([
     getShipsWithStatus(),
     getPersistedAlerts(2),
     getVoyagesPerShipMonthly(),
     getUnpaidVoyages(),
     canViewDocuments ? getExpiringDocuments(30) : Promise.resolve([]),
+    getVoyageTrips(),
   ]);
 
   const count = (s: "hijau" | "kuning" | "merah" | null) =>
@@ -394,6 +397,8 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
       </div>
+
+      <VoyageTripReport trips={trips} />
 
       <ShipBoard data={data} />
     </div>

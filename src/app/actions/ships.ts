@@ -507,3 +507,12 @@ export async function realizeVoyagePlan(planId: string): Promise<ActionResult> {
   revalidatePath("/voyages");
   return { success: "Pelayaran berhasil direalisasikan." };
 }
+
+export async function getTripActivities(voyageId: string) {
+  const user = await getSessionUser();
+  if (!user || !(await can(user.role, PERMS.shipView))) {
+    throw new Error("Anda tidak memiliki izin untuk melihat detail ini.");
+  }
+  const { getVoyageActivities } = await import("@/lib/voyages");
+  return getVoyageActivities(voyageId);
+}
