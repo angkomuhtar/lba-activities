@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { CreateShipForm } from "./create-ship-form";
 import { DeleteShipButton } from "./delete-ship-button";
+import { EditShipInline } from "./edit-ship-inline";
 import { statusColor, statusText } from "@/lib/ships";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ export default async function ShipsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama Kapal</TableHead>
+                  <TableHead>MMSI</TableHead>
                   <TableHead>Muatan</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Aktivitas Terakhir</TableHead>
@@ -71,7 +73,7 @@ export default async function ShipsPage({
               <TableBody>
                 {ships.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={canManage ? 5 : 4} className="py-8 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={canManage ? 6 : 5} className="py-8 text-center text-sm text-muted-foreground">
                       Belum ada kapal. Tambahkan kapal pertama.
                     </TableCell>
                   </TableRow>
@@ -85,6 +87,7 @@ export default async function ShipsPage({
                             {ship.nama}
                           </Link>
                         </TableCell>
+                        <TableCell className="font-mono text-sm">{ship.mmsi || "-"}</TableCell>
                         <TableCell>{ship.muatan || "-"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="gap-1.5">
@@ -97,7 +100,10 @@ export default async function ShipsPage({
                         </TableCell>
                         {canManage && (
                           <TableCell className="text-right">
-                            <DeleteShipButton id={ship.id} name={ship.nama} />
+                            <span className="inline-flex gap-1">
+                              <EditShipInline ship={{ id: ship.id, nama: ship.nama, muatan: ship.muatan, mmsi: ship.mmsi }} />
+                              <DeleteShipButton id={ship.id} name={ship.nama} />
+                            </span>
                           </TableCell>
                         )}
                       </TableRow>

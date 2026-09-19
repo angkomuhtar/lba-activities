@@ -3,7 +3,7 @@ import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 export type { ActivityStatus, PaymentStatus };
 
 export type ShipWithStatus = {
-  ship: { id: string; nama: string; muatan: string | null };
+  ship: { id: string; nama: string; muatan: string | null; mmsi: string | null };
   latest: { status: ActivityStatus; aktivitas: string; tanggal: Date } | null;
   fuelSisa: string | null;
   siAda: boolean;

@@ -62,6 +62,7 @@ model Ship {
   id        String   @id @default(uuid())
   nama      String
   muatan    String?
+  mmsi      String?
   voyages   Voyage[]
   activities ShipActivity[]
   stocks    StockRecord[]

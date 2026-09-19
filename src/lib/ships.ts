@@ -75,7 +75,7 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       return found[0] ? found[0].tanggal.toISOString() : null;
     };
     return {
-      ship: { id: ship.id, nama: ship.nama, muatan: ship.muatan },
+      ship: { id: ship.id, nama: ship.nama, muatan: ship.muatan, mmsi: ship.mmsi },
       latest: latestActByShip.get(ship.id) ?? null,
       fuelSisa: shipStocks[0]?.sisaStok.toString() ?? null,
       siAda: Boolean(voyage?.siNomor && voyage.siTanggal),

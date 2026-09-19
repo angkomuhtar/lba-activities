@@ -43,6 +43,11 @@ export function CreateShipForm() {
         <Input id="muatan" name="muatan" placeholder="Contoh: Batubara 3.000 MT" autoComplete="off" />
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="mmsi">MMSI (9 digit)</Label>
+        <Input id="mmsi" name="mmsi" placeholder="Contoh: 525000123" inputMode="numeric" pattern="\d{9}" maxLength={9} autoComplete="off" />
+      </div>
+
       <Button type="submit" className="w-full" disabled={pending}>
         {pending && <Loader2 className="size-4 animate-spin" />}
         Tambah Kapal

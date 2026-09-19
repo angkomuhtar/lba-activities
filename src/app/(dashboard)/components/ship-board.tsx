@@ -298,6 +298,13 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
           <span className='truncate font-medium'>{shipper ?? "?"}</span>
         </div>
 
+        {ship.mmsi && (
+          <div className='flex items-center gap-2 text-sm'>
+            <span className='text-muted-foreground'>MMSI:</span>
+            <span className='truncate font-mono font-medium'>{ship.mmsi}</span>
+          </div>
+        )}
+
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-muted-foreground'>Start Loading:</span>
           <span className='truncate font-medium'>

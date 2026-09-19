@@ -43,6 +43,7 @@ function parseDate(value: string | null | undefined): Date | null {
 const shipSchema = z.object({
   nama: z.string().min(1, "Nama kapal wajib diisi.").trim(),
   muatan: z.string().trim().optional().nullable(),
+  mmsi: z.string().trim().regex(/^\d{9}$/, "MMSI harus tepat 9 digit angka.").optional().or(z.literal("")).or(z.null()),
 });
 
 export type ShipResult = ActionResult;
@@ -60,6 +61,7 @@ export async function createShip(
   const parsed = shipSchema.safeParse({
     nama: formData.get("nama"),
     muatan: formData.get("muatan") || null,
+    mmsi: formData.get("mmsi") || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -67,6 +69,7 @@ export async function createShip(
     data: {
       nama: parsed.data.nama,
       muatan: parsed.data.muatan || null,
+      mmsi: parsed.data.mmsi || null,
       createdById: (await getSessionUser())?.id,
     },
   });
@@ -74,6 +77,35 @@ export async function createShip(
   revalidatePath("/ships");
   revalidatePath("/");
   return { success: "Kapal berhasil ditambahkan." };
+}
+
+export async function updateShip(id: string, _prevState: ActionResult, formData: FormData): Promise<ActionResult> {
+  try {
+    await requireManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const parsed = shipSchema.safeParse({
+    nama: formData.get("nama"),
+    muatan: formData.get("muatan") || null,
+    mmsi: formData.get("mmsi") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const ship = await prisma.ship.findUnique({ where: { id } });
+  if (!ship) return { error: "Kapal tidak ditemukan." };
+  const mmsi = parsed.data.mmsi || null;
+  if (mmsi) {
+    const dup = await prisma.ship.findFirst({ where: { mmsi, id: { not: id } } });
+    if (dup) return { error: `MMSI ${mmsi} sudah dipakai oleh kapal ${dup.nama}.` };
+  }
+  await prisma.ship.update({
+    where: { id },
+    data: { nama: parsed.data.nama, muatan: parsed.data.muatan || null, mmsi },
+  });
+  revalidatePath("/ships");
+  revalidatePath("/");
+  revalidatePath(`/ships/${id}`);
+  return { success: "Kapal berhasil diperbarui." };
 }
 
 export async function deleteShip(id: string): Promise<ActionResult> {

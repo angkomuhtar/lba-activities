@@ -87,6 +87,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
             </div>
             <p className="text-sm text-muted-foreground">
               {ship.muatan || "Muatan tidak diisi"}
+              {ship.mmsi ? ` · MMSI ${ship.mmsi}` : ""}
               {latest ? ` · ${latest.aktivitas} (${formatDate(latest.tanggal)})` : ""}
             </p>
           </div>
