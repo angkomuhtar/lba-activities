@@ -39,6 +39,48 @@ export interface VoyageMonthly {
   count: number;
 }
 
+export interface ActiveVoyage {
+  id: string;
+  ruteAsal: string | null;
+  ruteTujuan: string | null;
+  tglStart: Date | null;
+}
+
+// Voyage yang masih berjalan (belum diselesaikan = tglEnd kosong) per kapal.
+// Dipakai untuk cegah voyage ganda aktif pada kapal yang sama.
+export async function findActiveVoyagesByShip(
+  shipId: string,
+): Promise<ActiveVoyage[]> {
+  return prisma.voyage.findMany({
+    where: { shipId, tglEnd: null },
+    orderBy: [{ tglStart: "asc" }, { createdAt: "asc" }],
+    select: { id: true, ruteAsal: true, ruteTujuan: true, tglStart: true },
+  });
+}
+
+export function activeVoyageLabel(v: ActiveVoyage): string {
+  const rute =
+    v.ruteAsal || v.ruteTujuan
+      ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}`
+      : "tanpa rute";
+  const start = v.tglStart ? v.tglStart.toLocaleDateString("id-ID") : "belum mulai";
+  return `${rute} (mulai ${start})`;
+}
+
+// Voyage yang terakhir selesai (tglEnd paling akhir) untuk kapal tertentu,
+// dipakai untuk memeriksa voyage baru tidak mulai sebelum voyage selesai.
+export async function findLatestFinishedVoyage(
+  shipId: string,
+): Promise<{ id: string; ruteAsal: string | null; ruteTujuan: string | null; tglEnd: Date } | null> {
+  const v = await prisma.voyage.findFirst({
+    where: { shipId, tglEnd: { not: null } },
+    orderBy: { tglEnd: "desc" },
+    select: { id: true, ruteAsal: true, ruteTujuan: true, tglEnd: true },
+  });
+  if (!v?.tglEnd) return null;
+  return { id: v.id, ruteAsal: v.ruteAsal, ruteTujuan: v.ruteTujuan, tglEnd: v.tglEnd };
+}
+
 export async function getVoyagesMonthly(shipId?: string): Promise<VoyageMonthly[]> {
   const voyages = await prisma.voyage.findMany({
     where: shipId ? { shipId } : undefined,
