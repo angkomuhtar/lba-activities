@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
-import { assignVoyageToActivity } from "@/lib/voyages";
+import { assignVoyageToActivity, findActiveVoyagesByShip, findLatestFinishedVoyage, activeVoyageLabel } from "@/lib/voyages";
 
 export type ActionResult = { error?: string; success?: string } | undefined;
 
@@ -203,6 +203,36 @@ export async function createVoyage(
 
   const payload = await voyagePayload(formData);
   if ("error" in payload) return payload as ActionResult;
+
+  // Cegah voyage ganda aktif: hanya bermasalah jika voyage baru juga masih aktif (tglEnd kosong)
+  // dan sudah ada voyage berjalan lain pada kapal yang sama.
+  if (!payload.data.tglEnd) {
+    const active = await findActiveVoyagesByShip(shipId);
+    if (active.length > 0) {
+      const list = active.map((v) => activeVoyageLabel(v)).join("; ");
+      return {
+        error: `Kapal ini masih memiliki voyage aktif yang belum diselesaikan: ${list}. Silakan selesaikan voyage tersebut terlebih dahulu.`,
+      };
+    }
+  }
+
+  // Cegah voyage baru mulai sebelum voyage sebelumnya selesai (lebih kecil -> warning, sama boleh).
+  if (payload.data.tglStart) {
+    const prev = await findLatestFinishedVoyage(shipId);
+    if (prev && prev.tglEnd.getTime() > payload.data.tglStart.getTime()) {
+      const prevRute =
+        prev.ruteAsal || prev.ruteTujuan
+          ? `${prev.ruteAsal || "?"} → ${prev.ruteTujuan || "?"}`
+          : "voyage sebelumnya";
+      return {
+        error: `Tanggal mulai voyage baru (${payload.data.tglStart.toLocaleDateString(
+          "id-ID",
+        )}) lebih awal dari tanggal selesai voyage sebelumnya "${prevRute}" (${prev.tglEnd.toLocaleDateString(
+          "id-ID",
+        )}).`,
+      };
+    }
+  }
 
   await prisma.voyage.create({ data: { shipId, ...payload.data } });
 
@@ -519,6 +549,33 @@ export async function realizeVoyagePlan(planId: string): Promise<ActionResult> {
 
   const plan = await prisma.voyagePlan.findUnique({ where: { id: planId } });
   if (!plan) return { error: "Rencana pelayaran tidak ditemukan." };
+
+  // Realisasi rencana membuat voyage aktif (tglEnd kosong) -> cegah jika kapal punya voyage berjalan.
+  const active = await findActiveVoyagesByShip(plan.shipId);
+  if (active.length > 0) {
+    const list = active.map((v) => activeVoyageLabel(v)).join("; ");
+    return {
+      error: `Kapal ini masih memiliki voyage aktif yang belum diselesaikan: ${list}. Silakan selesaikan voyage tersebut terlebih dahulu.`,
+    };
+  }
+
+  // Cegah mulai sebelum voyage sebelumnya selesai (lebih kecil -> peringatan, sama boleh).
+  if (plan.eta) {
+    const prev = await findLatestFinishedVoyage(plan.shipId);
+    if (prev && prev.tglEnd.getTime() > plan.eta.getTime()) {
+      const prevRute =
+        prev.ruteAsal || prev.ruteTujuan
+          ? `${prev.ruteAsal || "?"} → ${prev.ruteTujuan || "?"}`
+          : "voyage sebelumnya";
+      return {
+        error: `Tanggal mulai voyage baru (${plan.eta.toLocaleDateString(
+          "id-ID",
+        )}) lebih awal dari tanggal selesai voyage sebelumnya "${prevRute}" (${prev.tglEnd.toLocaleDateString(
+          "id-ID",
+        )}).`,
+      };
+    }
+  }
 
   // Buat Voyage baru dari data plan, lalu hapus plan.
   await prisma.$transaction([

@@ -393,6 +393,7 @@ function PlanSection({
 }) {
   const [tPending, startTransition] = useTransition();
   const [confirmRealize, setConfirmRealize] = useState(false);
+  const [realizeError, setRealizeError] = useState<string | null>(null);
 
   const planRute =
     plan && (plan.ruteAsal || plan.ruteTujuan)
@@ -475,6 +476,11 @@ function PlanSection({
           <p className='mb-2 text-sm font-medium text-amber-800 dark:text-amber-300'>
             Realisasikan plan ini menjadi pelayaran baru?
           </p>
+          {realizeError && (
+            <p className='mb-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive'>
+              {realizeError}
+            </p>
+          )}
           <div className='flex gap-2'>
             <Button
               type='button'
@@ -484,7 +490,12 @@ function PlanSection({
               disabled={tPending}
               onClick={() =>
                 startTransition(async () => {
-                  await realizeVoyagePlan(plan.id);
+                  const res = await realizeVoyagePlan(plan.id);
+                  if (res?.error) {
+                    setRealizeError(res.error);
+                    return;
+                  }
+                  setRealizeError(null);
                   setConfirmRealize(false);
                 })
               }>
