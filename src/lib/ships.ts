@@ -89,6 +89,11 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       loadingFinish: actDate("Finish Loading"),
       bongkarStart: actDate("Start Bongkar"),
       bongkarFinish: actDate("Finish Bongkar"),
+      prorata: voyage?.prorata ?? null,
+      norLoadingStart: voyage?.norLoadingStart?.toISOString() ?? null,
+      norLoadingEnd: voyage?.norLoadingEnd?.toISOString() ?? null,
+      norBongkarStart: voyage?.norBongkarStart?.toISOString() ?? null,
+      norBongkarEnd: voyage?.norBongkarEnd?.toISOString() ?? null,
       activities: voyageActivities.map((a) => ({
         id: a.id,
         status: a.status,

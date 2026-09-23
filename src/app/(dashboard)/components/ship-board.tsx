@@ -147,6 +147,11 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
     loadingFinish,
     bongkarStart,
     bongkarFinish,
+    prorata,
+    norLoadingStart,
+    norLoadingEnd,
+    norBongkarStart,
+    norBongkarEnd,
     activities,
     nextPlan,
   } = card;
@@ -355,6 +360,14 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         </button>
       </div>
 
+      <NorSection
+        prorata={prorata}
+        loadingStart={norLoadingStart}
+        loadingEnd={norLoadingEnd}
+        bongkarStart={norBongkarStart}
+        bongkarEnd={norBongkarEnd}
+      />
+
       <PlanSection plan={nextPlan} onEdit={() => setPlanOpen(true)} />
 
       {fuelOpen && (
@@ -380,6 +393,78 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
           onClose={() => setPlanOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+const NOR_TODAY = Date.now();
+
+function NorSection({
+  prorata,
+  loadingStart,
+  loadingEnd,
+  bongkarStart,
+  bongkarEnd,
+}: {
+  prorata: number | null;
+  loadingStart: string | null;
+  loadingEnd: string | null;
+  bongkarStart: string | null;
+  bongkarEnd: string | null;
+}) {
+  const norDays = (
+    start: string | null,
+    end: string | null,
+  ): { days: number; berjalan: boolean } | null => {
+    if (!start) return null;
+    const startMs = new Date(start).getTime();
+    if (Number.isNaN(startMs)) return null;
+    const endMs = end ? new Date(end).getTime() : NOR_TODAY;
+    if (Number.isNaN(endMs)) return null;
+    const days = (endMs - startMs) / (1000 * 60 * 60 * 24);
+    return { days: Math.max(days, 0), berjalan: !end };
+  };
+
+  const norBox = (label: string, start: string | null, end: string | null) => {
+    const res = norDays(start, end);
+    if (!res) {
+      return (
+        <div className='rounded-lg bg-muted/40 px-3 py-2'>
+          <p className='text-xs font-medium text-muted-foreground'>{label}</p>
+          <p className='text-sm text-muted-foreground'>NOR Belum Diisi</p>
+        </div>
+      );
+    }
+    const over = prorata !== null && res.days > prorata;
+    return (
+      <div
+        className={cn(
+          "rounded-lg px-3 py-2",
+          over ? "bg-red-500 text-white" : "bg-muted/40 text-muted-foreground",
+        )}>
+        <p className={cn("text-xs font-medium", over ? "text-white/90" : "text-muted-foreground")}>
+          {label}
+        </p>
+        <p>
+          <span className='font-medium'>
+            {Number.isInteger(res.days) ? res.days : res.days.toFixed(1)} hari
+          </span>
+          {res.berjalan && " (berjalan)"}
+          {over && ` · prorata ${prorata} hari`}
+        </p>
+      </div>
+    );
+  };
+
+  if (!loadingStart && !bongkarStart) {
+    return null;
+  }
+
+  return (
+    <div className='mt-3 space-y-2 border-t pt-3 pl-1'>
+      <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>NOR</p>
+      {norBox("Loading", loadingStart, loadingEnd)}
+      {norBox("Bongkar", bongkarStart, bongkarEnd)}
     </div>
   );
 }

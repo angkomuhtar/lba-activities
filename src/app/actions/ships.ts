@@ -40,6 +40,13 @@ function parseDate(value: string | null | undefined): Date | null {
   return date;
 }
 
+function parseDateTime(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
 const shipSchema = z.object({
   nama: z.string().min(1, "Nama kapal wajib diisi.").trim(),
   muatan: z.string().trim().optional().nullable(),
@@ -134,6 +141,11 @@ const voyageSchema = z.object({
   spalNomor: z.string().trim().optional().nullable(),
   spalTanggal: z.string().optional().nullable(),
   catatan: z.string().trim().optional().nullable(),
+  prorata: z.string().optional().nullable(),
+  norLoadingStart: z.string().optional().nullable(),
+  norLoadingEnd: z.string().optional().nullable(),
+  norBongkarStart: z.string().optional().nullable(),
+  norBongkarEnd: z.string().optional().nullable(),
 });
 
 type VoyageData = {
@@ -149,6 +161,11 @@ type VoyageData = {
   spalNomor: string | null;
   spalTanggal: Date | null;
   catatan: string | null;
+  prorata: number | null;
+  norLoadingStart: Date | null;
+  norLoadingEnd: Date | null;
+  norBongkarStart: Date | null;
+  norBongkarEnd: Date | null;
 };
 
 async function voyagePayload(
@@ -167,27 +184,58 @@ async function voyagePayload(
     spalNomor: formData.get("spalNomor") || null,
     spalTanggal: formData.get("spalTanggal") || null,
     catatan: formData.get("catatan") || null,
+    prorata: formData.get("prorata") || null,
+    norLoadingStart: formData.get("norLoadingStart") || null,
+    norLoadingEnd: formData.get("norLoadingEnd") || null,
+    norBongkarStart: formData.get("norBongkarStart") || null,
+    norBongkarEnd: formData.get("norBongkarEnd") || null,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
 
-  return {
-    data: {
-      ruteAsal: parsed.data.ruteAsal || null,
-      ruteTujuan: parsed.data.ruteTujuan || null,
-      shipper: parsed.data.shipper || null,
-      statusBayar: parsed.data.statusBayar || null,
-      invoiceNomor: parsed.data.invoiceNomor || null,
-      tglStart: parseDate(parsed.data.tglStart),
-      tglEnd: parseDate(parsed.data.tglEnd),
-      siNomor: parsed.data.siNomor || null,
-      siTanggal: parseDate(parsed.data.siTanggal),
-      spalNomor: parsed.data.spalNomor || null,
-      spalTanggal: parseDate(parsed.data.spalTanggal),
-      catatan: parsed.data.catatan || null,
-    },
+  // Prorata harus angka hari positif bila diisi.
+  let prorata: number | null = null;
+  if (parsed.data.prorata) {
+    const n = parseInt(parsed.data.prorata, 10);
+    if (Number.isNaN(n) || n < 1) {
+      return { error: "Prorata harus berupa angka hari positif." };
+    }
+    prorata = n;
+  }
+
+  const data: VoyageData = {
+    ruteAsal: parsed.data.ruteAsal || null,
+    ruteTujuan: parsed.data.ruteTujuan || null,
+    shipper: parsed.data.shipper || null,
+    statusBayar: parsed.data.statusBayar || null,
+    invoiceNomor: parsed.data.invoiceNomor || null,
+    tglStart: parseDate(parsed.data.tglStart),
+    tglEnd: parseDate(parsed.data.tglEnd),
+    siNomor: parsed.data.siNomor || null,
+    siTanggal: parseDate(parsed.data.siTanggal),
+    spalNomor: parsed.data.spalNomor || null,
+    spalTanggal: parseDate(parsed.data.spalTanggal),
+    catatan: parsed.data.catatan || null,
+    prorata,
+    norLoadingStart: parseDateTime(parsed.data.norLoadingStart),
+    norLoadingEnd: parseDateTime(parsed.data.norLoadingEnd),
+    norBongkarStart: parseDateTime(parsed.data.norBongkarStart),
+    norBongkarEnd: parseDateTime(parsed.data.norBongkarEnd),
   };
+
+  // NOR end harus setelah NOR start bila keduanya diisi (loading & bongkar).
+  const norPairs: [Date | null, Date | null, string][] = [
+    [data.norLoadingStart, data.norLoadingEnd, "NOR Loading"],
+    [data.norBongkarStart, data.norBongkarEnd, "NOR Bongkar"],
+  ];
+  for (const [start, end, label] of norPairs) {
+    if (start && end && end.getTime() < start.getTime()) {
+      return { error: `${label}: tanggal/jam selesai tidak boleh sebelum mulai.` };
+    }
+  }
+
+  return { data };
 }
 
 export async function createVoyage(
