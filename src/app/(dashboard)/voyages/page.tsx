@@ -41,6 +41,11 @@ export default async function VoyagesPage() {
     spalNomor: v.spalNomor,
     spalTanggal: v.spalTanggal ? toInputDate(v.spalTanggal) : null,
     catatan: v.catatan,
+    prorata: v.prorata,
+    norLoadingStart: v.norLoadingStart ? toInputDateTime(v.norLoadingStart) : null,
+    norLoadingEnd: v.norLoadingEnd ? toInputDateTime(v.norLoadingEnd) : null,
+    norBongkarStart: v.norBongkarStart ? toInputDateTime(v.norBongkarStart) : null,
+    norBongkarEnd: v.norBongkarEnd ? toInputDateTime(v.norBongkarEnd) : null,
     activities: v.activities.map((a) => ({
       id: a.id,
       aktivitas: a.aktivitas,
@@ -59,4 +64,14 @@ function toInputDate(value: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function toInputDateTime(value: Date): string {
+  const d = new Date(value);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${h}:${min}`;
 }

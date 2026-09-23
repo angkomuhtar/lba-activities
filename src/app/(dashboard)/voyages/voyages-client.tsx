@@ -11,7 +11,7 @@ import {
 } from "@/app/actions/ships";
 import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 import { statusColor } from "@/lib/ship-status";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,11 @@ export interface VoyageItem {
   spalNomor: string | null;
   spalTanggal: string | null;
   catatan: string | null;
+  prorata: number | null;
+  norLoadingStart: string | null;
+  norLoadingEnd: string | null;
+  norBongkarStart: string | null;
+  norBongkarEnd: string | null;
   activities: VoyageActivity[];
 }
 
@@ -159,6 +164,56 @@ const FIELDS: { name: VoyageField; label: string; type?: string }[] = [
   { name: "spalTanggal", label: "Tanggal SPAL", type: "date" },
 ];
 
+const NOR_FIELDS: { name: keyof VoyageItem; label: string }[] = [
+  { name: "norLoadingStart", label: "NOR Loading Mulai" },
+  { name: "norLoadingEnd", label: "NOR Loading Selesai" },
+  { name: "norBongkarStart", label: "NOR Bongkar Mulai" },
+  { name: "norBongkarEnd", label: "NOR Bongkar Selesai" },
+];
+
+function NorFields({
+  disabled,
+  prefix,
+  voyage,
+}: {
+  disabled: boolean;
+  prefix: string;
+  voyage?: VoyageItem;
+}) {
+  const val = (name: keyof VoyageItem) => voyage?.[name] ?? "";
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed p-3">
+      <p className="text-sm font-medium text-muted-foreground">NOR & Prorata</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}-prorata`}>Prorata (hari)</Label>
+          <Input
+            id={`${prefix}-prorata`}
+            name="prorata"
+            type="number"
+            min={1}
+            defaultValue={voyage ? (voyage.prorata ?? "") : ""}
+            disabled={disabled}
+          />
+        </div>
+        <div className="hidden lg:block" />
+        {NOR_FIELDS.map((f) => (
+          <div key={f.name} className="space-y-2">
+            <Label htmlFor={`${prefix}-${f.name}`}>{f.label}</Label>
+            <Input
+              id={`${prefix}-${f.name}`}
+              name={f.name}
+              type="datetime-local"
+              defaultValue={val(f.name) ? String(val(f.name)) : ""}
+              disabled={disabled}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StatusBayarField({
   id,
   defaultValue,
@@ -253,6 +308,7 @@ function AddVoyageForm({ ships }: { ships: { id: string; nama: string }[] }) {
       </div>
       <StatusBayarField id="statusBayar" disabled={pending} />
       <InvoiceNomorField id="invoiceNomor" disabled={pending} />
+      <NorFields disabled={pending} prefix="add" />
       <div className="space-y-2">
         <Label htmlFor="catatan">Catatan</Label>
         <Input id="catatan" name="catatan" disabled={pending} />
@@ -357,6 +413,30 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
         </p>
       )}
 
+      {(voyage.prorata !== null ||
+        voyage.norLoadingStart ||
+        voyage.norBongkarStart) && (
+        <div className="mt-3 rounded-lg bg-muted/40 p-3 text-sm">
+          {voyage.prorata !== null && (
+            <p className="text-muted-foreground">
+              Prorata: <span className="font-medium">{voyage.prorata} hari</span>
+            </p>
+          )}
+          {(voyage.norLoadingStart || voyage.norLoadingEnd) && (
+            <p className="text-muted-foreground">
+              NOR Loading: {formatDateTime(voyage.norLoadingStart)} —{" "}
+              {formatDateTime(voyage.norLoadingEnd)}
+            </p>
+          )}
+          {(voyage.norBongkarStart || voyage.norBongkarEnd) && (
+            <p className="text-muted-foreground">
+              NOR Bongkar: {formatDateTime(voyage.norBongkarStart)} —{" "}
+              {formatDateTime(voyage.norBongkarEnd)}
+            </p>
+          )}
+        </div>
+      )}
+
       {voyage.activities.length > 0 && (
         <div className="mt-3 space-y-1.5 border-t pt-3">
           {voyage.activities.slice(0, 5).map((act) => (
@@ -415,6 +495,7 @@ function EditVoyageForm({ voyage, onCancel }: { voyage: VoyageItem; onCancel: ()
       </div>
       <StatusBayarField id={`statusBayar-${voyage.id}`} defaultValue={voyage.statusBayar} disabled={pending} />
       <InvoiceNomorField id={`invoiceNomor-${voyage.id}`} defaultValue={voyage.invoiceNomor} disabled={pending} />
+      <NorFields disabled={pending} prefix={`edit-${voyage.id}`} voyage={voyage} />
       <div className="space-y-2">
         <Label htmlFor={`catatan-${voyage.id}`}>Catatan</Label>
         <Input id={`catatan-${voyage.id}`} name="catatan" defaultValue={voyage.catatan ?? ""} disabled={pending} />

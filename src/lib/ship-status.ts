@@ -17,6 +17,11 @@ export type ShipWithStatus = {
   loadingFinish: string | null;
   bongkarStart: string | null;
   bongkarFinish: string | null;
+  prorata: number | null;
+  norLoadingStart: string | null;
+  norLoadingEnd: string | null;
+  norBongkarStart: string | null;
+  norBongkarEnd: string | null;
   activities: {
     id: string;
     status: ActivityStatus;
