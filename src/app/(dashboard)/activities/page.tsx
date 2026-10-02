@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { ruteLabel } from "@/lib/jetties";
 import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
@@ -27,7 +28,13 @@ export default async function ActivitiesPage({
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
       include: {
         ship: { select: { nama: true } },
-        voyage: { select: { ruteAsal: true, ruteTujuan: true, siNomor: true } },
+        voyage: {
+          select: {
+            siNomor: true,
+            ruteAsalJetty: { select: { nama: true, location: true } },
+            ruteTujuanJetty: { select: { nama: true, location: true } },
+          },
+        },
       },
     }),
     prisma.voyage.groupBy({ by: ["shipId"], _count: { _all: true } }),
@@ -43,11 +50,7 @@ export default async function ActivitiesPage({
   const enriched = activities.map((a) => ({
     ...a,
     voyageLabel: a.voyage
-      ? a.voyage.ruteAsal || a.voyage.ruteTujuan
-        ? `${a.voyage.ruteAsal || "?"} → ${a.voyage.ruteTujuan || "?"}`
-        : a.voyage.siNomor
-          ? `SI ${a.voyage.siNomor}`
-          : "Pelayaran"
+      ? ruteLabel(a.voyage.ruteAsalJetty, a.voyage.ruteTujuanJetty, a.voyage.siNomor ? `SI ${a.voyage.siNomor}` : null)
       : null,
   }));
 

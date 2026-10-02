@@ -6,6 +6,7 @@ import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { getShipDetail, statusColor, statusText } from "@/lib/ships";
 import { prisma } from "@/lib/prisma";
+import { jettyLabel, ruteLabel } from "@/lib/jetties";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -38,8 +39,8 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
 
   const voyages: VoyageItem[] = ship.voyages.map((v) => ({
     id: v.id,
-    ruteAsal: v.ruteAsal,
-    ruteTujuan: v.ruteTujuan,
+    ruteAsal: v.ruteAsalJetty ? jettyLabel(v.ruteAsalJetty) : null,
+    ruteTujuan: v.ruteTujuanJetty ? jettyLabel(v.ruteTujuanJetty) : null,
     ruteAsalId: v.ruteAsalId,
     ruteTujuanId: v.ruteTujuanId,
     shipper: v.shipper,
@@ -69,7 +70,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
   const voyageLabels = new Map(
     ship.voyages.map((v) => [
       v.id,
-      v.ruteAsal || v.ruteTujuan ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}` : v.siNomor ? `SI ${v.siNomor}` : "Pelayaran",
+      ruteLabel(v.ruteAsalJetty, v.ruteTujuanJetty, v.siNomor ? `SI ${v.siNomor}` : null),
     ]),
   );
 

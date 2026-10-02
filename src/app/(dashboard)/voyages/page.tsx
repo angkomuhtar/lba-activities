@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { jettyLabel } from "@/lib/jetties";
 import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
@@ -21,6 +22,8 @@ export default async function VoyagesPage() {
       include: {
         ship: { select: { nama: true } },
         activities: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
+        ruteAsalJetty: { select: { nama: true, location: true } },
+        ruteTujuanJetty: { select: { nama: true, location: true } },
       },
     }),
     prisma.jetty.findMany({
@@ -34,8 +37,8 @@ export default async function VoyagesPage() {
     id: v.id,
     shipId: v.shipId,
     shipName: v.ship.nama,
-    ruteAsal: v.ruteAsal,
-    ruteTujuan: v.ruteTujuan,
+    ruteAsal: v.ruteAsalJetty ? jettyLabel(v.ruteAsalJetty) : null,
+    ruteTujuan: v.ruteTujuanJetty ? jettyLabel(v.ruteTujuanJetty) : null,
     ruteAsalId: v.ruteAsalId,
     ruteTujuanId: v.ruteTujuanId,
     shipper: v.shipper,

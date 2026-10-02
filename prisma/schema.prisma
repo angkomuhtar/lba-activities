@@ -78,8 +78,6 @@ model Voyage {
   id          String         @id @default(uuid())
   shipId      String
   ship        Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  ruteAsal    String?
-  ruteTujuan  String?
   ruteAsalId  String?
   ruteTujuanId String?
   ruteAsalJetty  Jetty?      @relation("VoyageAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
@@ -167,8 +165,6 @@ model VoyagePlan {
   id         String    @id @default(uuid())
   shipId     String    @unique
   ship       Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  ruteAsal   String?   @map("rute_asal")
-  ruteTujuan String?   @map("rute_tujuan")
   ruteAsalId   String?   @map("rute_asal_id")
   ruteTujuanId String?   @map("rute_tujuan_id")
   ruteAsalJetty  Jetty?  @relation("PlanAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)

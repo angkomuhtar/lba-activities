@@ -661,7 +661,6 @@ function PlanModal({
             name='ruteAsal'
             label='Rute Asal'
             jetties={jetties}
-            defaultValue={plan?.ruteAsal}
             defaultValueId={plan?.ruteAsalId}
           />
 
@@ -670,7 +669,6 @@ function PlanModal({
             name='ruteTujuan'
             label='Rute Tujuan'
             jetties={jetties}
-            defaultValue={plan?.ruteTujuan}
             defaultValueId={plan?.ruteTujuanId}
           />
 

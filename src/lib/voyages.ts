@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { jettyLabel, ruteLabel } from "@/lib/jetties";
 import type { ActivityStatus, PaymentStatus } from "@prisma/client";
 
 // Taut aktivitas ke voyage dengan aturan:
@@ -51,11 +52,22 @@ export interface ActiveVoyage {
 export async function findActiveVoyagesByShip(
   shipId: string,
 ): Promise<ActiveVoyage[]> {
-  return prisma.voyage.findMany({
+  const voyages = await prisma.voyage.findMany({
     where: { shipId, tglEnd: null },
     orderBy: [{ tglStart: "asc" }, { createdAt: "asc" }],
-    select: { id: true, ruteAsal: true, ruteTujuan: true, tglStart: true },
+    select: {
+      id: true,
+      tglStart: true,
+      ruteAsalJetty: { select: { nama: true, location: true } },
+      ruteTujuanJetty: { select: { nama: true, location: true } },
+    },
   });
+  return voyages.map((v) => ({
+    id: v.id,
+    ruteAsal: v.ruteAsalJetty ? jettyLabel(v.ruteAsalJetty) : null,
+    ruteTujuan: v.ruteTujuanJetty ? jettyLabel(v.ruteTujuanJetty) : null,
+    tglStart: v.tglStart,
+  }));
 }
 
 export function activeVoyageLabel(v: ActiveVoyage): string {
@@ -75,10 +87,20 @@ export async function findLatestFinishedVoyage(
   const v = await prisma.voyage.findFirst({
     where: { shipId, tglEnd: { not: null } },
     orderBy: { tglEnd: "desc" },
-    select: { id: true, ruteAsal: true, ruteTujuan: true, tglEnd: true },
+    select: {
+      id: true,
+      tglEnd: true,
+      ruteAsalJetty: { select: { nama: true, location: true } },
+      ruteTujuanJetty: { select: { nama: true, location: true } },
+    },
   });
   if (!v?.tglEnd) return null;
-  return { id: v.id, ruteAsal: v.ruteAsal, ruteTujuan: v.ruteTujuan, tglEnd: v.tglEnd };
+  return {
+    id: v.id,
+    ruteAsal: v.ruteAsalJetty ? jettyLabel(v.ruteAsalJetty) : null,
+    ruteTujuan: v.ruteTujuanJetty ? jettyLabel(v.ruteTujuanJetty) : null,
+    tglEnd: v.tglEnd,
+  };
 }
 
 export async function getVoyagesMonthly(shipId?: string): Promise<VoyageMonthly[]> {
@@ -160,17 +182,16 @@ export interface UnpaidVoyage {
 export async function getUnpaidVoyages(): Promise<UnpaidVoyage[]> {
   const voyages = await prisma.voyage.findMany({
     where: { OR: [{ statusBayar: null }, { statusBayar: "DP" }] },
-    include: { ship: { select: { nama: true } } },
+    include: {
+      ship: { select: { nama: true } },
+      ruteAsalJetty: { select: { nama: true, location: true } },
+      ruteTujuanJetty: { select: { nama: true, location: true } },
+    },
     orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
   });
 
   return voyages.map((v) => {
-    const rute =
-      v.ruteAsal || v.ruteTujuan
-        ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}`
-        : v.siNomor
-          ? `SI ${v.siNomor}`
-          : "Pelayaran";
+    const rute = ruteLabel(v.ruteAsalJetty, v.ruteTujuanJetty, v.siNomor ? `SI ${v.siNomor}` : null);
     return {
       id: v.id,
       shipId: v.shipId,
@@ -234,6 +255,7 @@ export interface VoyageTrip {
   shipId: string;
   shipName: string;
   rute: string;
+  ruteTujuanId: string | null;
   tglStart: string | null;
   tglEnd: string | null;
   jumlahHari: number | null;
@@ -252,21 +274,22 @@ function jumlahHari(tglStart: Date | null, tglEnd: Date | null): number | null {
 
 export async function getVoyageTrips(): Promise<VoyageTrip[]> {
   const voyages = await prisma.voyage.findMany({
-    include: { ship: { select: { nama: true } }, _count: { select: { activities: true } } },
+    include: {
+      ship: { select: { nama: true } },
+      ruteAsalJetty: { select: { nama: true, location: true } },
+      ruteTujuanJetty: { select: { nama: true, location: true } },
+      _count: { select: { activities: true } },
+    },
     orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
   });
   return voyages.map((v) => {
-    const rute =
-      v.ruteAsal || v.ruteTujuan
-        ? `${v.ruteAsal || "?"} → ${v.ruteTujuan || "?"}`
-        : v.siNomor
-          ? `SI ${v.siNomor}`
-          : "Pelayaran";
+    const rute = ruteLabel(v.ruteAsalJetty, v.ruteTujuanJetty, v.siNomor ? `SI ${v.siNomor}` : null);
     return {
       id: v.id,
       shipId: v.shipId,
       shipName: v.ship.nama,
       rute,
+      ruteTujuanId: v.ruteTujuanId,
       tglStart: v.tglStart ? v.tglStart.toISOString() : null,
       tglEnd: v.tglEnd ? v.tglEnd.toISOString() : null,
       jumlahHari: jumlahHari(v.tglStart, v.tglEnd),
