@@ -404,7 +404,7 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      <VoyageTripReport trips={trips} />
+      <VoyageTripReport trips={trips} jetties={jetties.filter((j) => j.type === "DISCHARGING")} />
 
       <ShipBoard data={data} jetties={jetties} />
     </div>

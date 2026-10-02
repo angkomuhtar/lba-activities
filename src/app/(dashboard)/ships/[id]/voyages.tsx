@@ -150,7 +150,6 @@ function VoyageFields({
         name="ruteAsal"
         label="Rute Asal"
         jetties={jetties}
-        defaultValue={voyage?.ruteAsal}
         defaultValueId={voyage?.ruteAsalId}
         disabled={disabled}
       />
@@ -159,7 +158,6 @@ function VoyageFields({
         name="ruteTujuan"
         label="Rute Tujuan"
         jetties={jetties}
-        defaultValue={voyage?.ruteTujuan}
         defaultValueId={voyage?.ruteTujuanId}
         disabled={disabled}
       />
@@ -465,7 +463,6 @@ function EditVoyageForm({
           name="ruteAsal"
           label="Rute Asal"
           jetties={jetties}
-          defaultValue={voyage.ruteAsal}
           defaultValueId={voyage.ruteAsalId}
           disabled={pending}
         />
@@ -474,7 +471,6 @@ function EditVoyageForm({
           name="ruteTujuan"
           label="Rute Tujuan"
           jetties={jetties}
-          defaultValue={voyage.ruteTujuan}
           defaultValueId={voyage.ruteTujuanId}
           disabled={pending}
         />

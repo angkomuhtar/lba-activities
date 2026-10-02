@@ -13,9 +13,19 @@ import type { VoyageTrip } from "@/lib/voyages";
 import { getTripActivities } from "@/app/actions/ships";
 import { statusColor } from "@/lib/ship-status";
 
-export function VoyageTripReport({ trips }: { trips: VoyageTrip[] }) {
+export interface DischargeJetty {
+  id: string;
+  nama: string;
+  location: string | null;
+}
+
+export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jetties: DischargeJetty[] }) {
   const tripPage = usePage("tripPage");
-  const { rows: tripRows, page: tripSafe, totalPages: tripPages } = paginate(trips, tripPage, 10);
+  const [jettyBongkar, setJettyBongkar] = useState("");
+  const filteredTrips = jettyBongkar
+    ? trips.filter((t) => t.ruteTujuanId === jettyBongkar)
+    : trips;
+  const { rows: tripRows, page: tripSafe, totalPages: tripPages } = paginate(filteredTrips, tripPage, 10);
   const [activities, setActivities] = useState<Awaited<ReturnType<typeof getTripActivities>> | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,8 +39,23 @@ export function VoyageTripReport({ trips }: { trips: VoyageTrip[] }) {
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <CardTitle>Riwayat Perjalanan Terakhir</CardTitle>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            Jetty Bongkar
+            <select
+              value={jettyBongkar}
+              onChange={(e) => setJettyBongkar(e.target.value)}
+              className="h-9 min-w-40 rounded-lg border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Semua</option>
+              {jetties.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.location ? `${j.nama} (${j.location})` : j.nama}
+                </option>
+              ))}
+            </select>
+          </label>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>

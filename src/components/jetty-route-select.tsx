@@ -14,7 +14,6 @@ interface JettyRouteSelectProps {
   name: "ruteAsal" | "ruteTujuan";
   label: string;
   jetties: JettyOption[];
-  defaultValue?: string | null;
   defaultValueId?: string | null;
   disabled?: boolean;
 }
@@ -28,12 +27,9 @@ export function JettyRouteSelect({
   name,
   label,
   jetties,
-  defaultValue,
   defaultValueId,
   disabled,
 }: JettyRouteSelectProps) {
-  const hasLegacy = Boolean(defaultValue);
-
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}</Label>
@@ -44,7 +40,7 @@ export function JettyRouteSelect({
         disabled={disabled}
         className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
       >
-        <option value="">{hasLegacy ? `Teks lama: ${defaultValue}` : "Pilih jetty…"}</option>
+        <option value="">Pilih jetty…</option>
         <optgroup label="Loading">
           {jetties
             .filter((j) => j.type === "LOADING")
@@ -66,7 +62,6 @@ export function JettyRouteSelect({
             ))}
         </optgroup>
       </select>
-      <input type="hidden" name={name} value={defaultValue ?? ""} />
     </div>
   );
 }

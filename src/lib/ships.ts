@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { jettyLabel } from "@/lib/jetties";
 import { statusColor, statusText, type ShipWithStatus } from "@/lib/ship-status";
 
 export { statusColor, statusText };
@@ -10,7 +11,14 @@ export type { ShipWithStatus };
 export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
   const ships = await prisma.ship.findMany({
     orderBy: { createdAt: "asc" },
-    include: { voyagePlan: true },
+    include: {
+      voyagePlan: {
+        include: {
+          ruteAsalJetty: { select: { nama: true, location: true } },
+          ruteTujuanJetty: { select: { nama: true, location: true } },
+        },
+      },
+    },
   });
 
   const ids = ships.map((s) => s.id);
@@ -24,7 +32,13 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       where: { shipId: { in: ids } },
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
     }),
-    prisma.voyage.findMany({ where: { shipId: { in: ids } } }),
+    prisma.voyage.findMany({
+      where: { shipId: { in: ids } },
+      include: {
+        ruteAsalJetty: { select: { nama: true, location: true } },
+        ruteTujuanJetty: { select: { nama: true, location: true } },
+      },
+    }),
   ]);
 
   const latestActByShip = new Map<string, (typeof activities)[number]>();
@@ -80,8 +94,8 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       fuelSisa: shipStocks[0]?.sisaStok.toString() ?? null,
       siAda: Boolean(voyage?.siNomor && voyage.siTanggal),
       spalAda: Boolean(voyage?.spalNomor && voyage.spalTanggal),
-      ruteAsal: voyage?.ruteAsal ?? null,
-      ruteTujuan: voyage?.ruteTujuan ?? null,
+      ruteAsal: voyage?.ruteAsalJetty ? jettyLabel(voyage.ruteAsalJetty) : null,
+      ruteTujuan: voyage?.ruteTujuanJetty ? jettyLabel(voyage.ruteTujuanJetty) : null,
       shipper: voyage?.shipper ?? null,
       statusBayar: voyage?.statusBayar ?? null,
       invoiceNomor: voyage?.invoiceNomor ?? null,
@@ -114,8 +128,12 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
       nextPlan: ship.voyagePlan
         ? {
             id: ship.voyagePlan.id,
-            ruteAsal: ship.voyagePlan.ruteAsal,
-            ruteTujuan: ship.voyagePlan.ruteTujuan,
+            ruteAsal: ship.voyagePlan.ruteAsalJetty
+              ? jettyLabel(ship.voyagePlan.ruteAsalJetty)
+              : null,
+            ruteTujuan: ship.voyagePlan.ruteTujuanJetty
+              ? jettyLabel(ship.voyagePlan.ruteTujuanJetty)
+              : null,
             ruteAsalId: ship.voyagePlan.ruteAsalId,
             ruteTujuanId: ship.voyagePlan.ruteTujuanId,
             eta: ship.voyagePlan.eta?.toISOString() ?? null,
@@ -133,6 +151,8 @@ export async function getShipDetail(id: string) {
         orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
         include: {
           activities: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
+          ruteAsalJetty: { select: { nama: true, location: true } },
+          ruteTujuanJetty: { select: { nama: true, location: true } },
         },
       },
       activities: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
