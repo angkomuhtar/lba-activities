@@ -116,6 +116,8 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
             id: ship.voyagePlan.id,
             ruteAsal: ship.voyagePlan.ruteAsal,
             ruteTujuan: ship.voyagePlan.ruteTujuan,
+            ruteAsalId: ship.voyagePlan.ruteAsalId,
+            ruteTujuanId: ship.voyagePlan.ruteTujuanId,
             eta: ship.voyagePlan.eta?.toISOString() ?? null,
           }
         : null,

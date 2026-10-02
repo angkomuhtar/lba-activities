@@ -131,6 +131,8 @@ export async function deleteShip(id: string): Promise<ActionResult> {
 const voyageSchema = z.object({
   ruteAsal: z.string().trim().optional().nullable(),
   ruteTujuan: z.string().trim().optional().nullable(),
+  ruteAsalId: z.string().optional().nullable(),
+  ruteTujuanId: z.string().optional().nullable(),
   shipper: z.string().trim().optional().nullable(),
   statusBayar: z.enum(["DP", "LUNAS"]).optional().nullable(),
   invoiceNomor: z.string().trim().optional().nullable(),
@@ -151,6 +153,8 @@ const voyageSchema = z.object({
 type VoyageData = {
   ruteAsal: string | null;
   ruteTujuan: string | null;
+  ruteAsalId: string | null;
+  ruteTujuanId: string | null;
   shipper: string | null;
   statusBayar: "DP" | "LUNAS" | null;
   invoiceNomor: string | null;
@@ -174,6 +178,8 @@ async function voyagePayload(
   const parsed = voyageSchema.safeParse({
     ruteAsal: formData.get("ruteAsal") || null,
     ruteTujuan: formData.get("ruteTujuan") || null,
+    ruteAsalId: formData.get("ruteAsalId") || null,
+    ruteTujuanId: formData.get("ruteTujuanId") || null,
     shipper: formData.get("shipper") || null,
     statusBayar: formData.get("statusBayar") || null,
     invoiceNomor: formData.get("invoiceNomor") || null,
@@ -207,6 +213,8 @@ async function voyagePayload(
   const data: VoyageData = {
     ruteAsal: parsed.data.ruteAsal || null,
     ruteTujuan: parsed.data.ruteTujuan || null,
+    ruteAsalId: null,
+    ruteTujuanId: null,
     shipper: parsed.data.shipper || null,
     statusBayar: parsed.data.statusBayar || null,
     invoiceNomor: parsed.data.invoiceNomor || null,
@@ -223,6 +231,32 @@ async function voyagePayload(
     norBongkarStart: parseDateTime(parsed.data.norBongkarStart),
     norBongkarEnd: parseDateTime(parsed.data.norBongkarEnd),
   };
+
+  // Resolve jetty yang dipilih dari dropdown: isi FK + jadikan string fallback.
+  const jettyIds = new Set<string>();
+  if (parsed.data.ruteAsalId) jettyIds.add(parsed.data.ruteAsalId);
+  if (parsed.data.ruteTujuanId) jettyIds.add(parsed.data.ruteTujuanId);
+
+  const jetties = await prisma.jetty.findMany({
+    where: { id: { in: [...jettyIds] } },
+    select: { id: true, nama: true, location: true },
+  });
+  const jettyById = new Map(jetties.map((j) => [j.id, j]));
+
+  const resolveRoute = (id: string | null | undefined) => {
+    if (!id) return { id: null, label: null };
+    const jetty = jettyById.get(id);
+    if (!jetty) return { id: null, label: null };
+    const label = [jetty.nama, jetty.location].filter(Boolean).join(", ");
+    return { id: jetty.id, label };
+  };
+
+  const asal = resolveRoute(parsed.data.ruteAsalId);
+  const tujuan = resolveRoute(parsed.data.ruteTujuanId);
+  data.ruteAsalId = asal.id;
+  data.ruteTujuanId = tujuan.id;
+  if (asal.id) data.ruteAsal = asal.label;
+  if (tujuan.id) data.ruteTujuan = tujuan.label;
 
   // NOR end harus setelah NOR start bila keduanya diisi (loading & bongkar).
   const norPairs: [Date | null, Date | null, string][] = [
@@ -533,6 +567,8 @@ export async function deleteStock(id: string): Promise<ActionResult> {
 const voyagePlanSchema = z.object({
   ruteAsal: z.string().trim().optional().nullable(),
   ruteTujuan: z.string().trim().optional().nullable(),
+  ruteAsalId: z.string().optional().nullable(),
+  ruteTujuanId: z.string().optional().nullable(),
   eta: z.string().optional().nullable(),
 });
 
@@ -550,13 +586,35 @@ export async function upsertVoyagePlan(
   const parsed = voyagePlanSchema.safeParse({
     ruteAsal: formData.get("ruteAsal") || null,
     ruteTujuan: formData.get("ruteTujuan") || null,
+    ruteAsalId: formData.get("ruteAsalId") || null,
+    ruteTujuanId: formData.get("ruteTujuanId") || null,
     eta: formData.get("eta") || null,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Resolve jetty dropdown -> FK + string fallback.
+  const jettyIds = new Set<string>();
+  if (parsed.data.ruteAsalId) jettyIds.add(parsed.data.ruteAsalId);
+  if (parsed.data.ruteTujuanId) jettyIds.add(parsed.data.ruteTujuanId);
+  const jetties = await prisma.jetty.findMany({
+    where: { id: { in: [...jettyIds] } },
+    select: { id: true, nama: true, location: true },
+  });
+  const jettyById = new Map(jetties.map((j) => [j.id, j]));
+  const resolveRoute = (id: string | null | undefined) => {
+    if (!id) return { id: null, label: null };
+    const jetty = jettyById.get(id);
+    if (!jetty) return { id: null, label: null };
+    return { id: jetty.id, label: [jetty.nama, jetty.location].filter(Boolean).join(", ") };
+  };
+  const asal = resolveRoute(parsed.data.ruteAsalId);
+  const tujuan = resolveRoute(parsed.data.ruteTujuanId);
+
   const data = {
-    ruteAsal: parsed.data.ruteAsal || null,
-    ruteTujuan: parsed.data.ruteTujuan || null,
+    ruteAsal: asal.id ? asal.label : parsed.data.ruteAsal || null,
+    ruteTujuan: tujuan.id ? tujuan.label : parsed.data.ruteTujuan || null,
+    ruteAsalId: asal.id,
+    ruteTujuanId: tujuan.id,
     eta: parseDate(parsed.data.eta),
   };
 
@@ -632,6 +690,8 @@ export async function realizeVoyagePlan(planId: string): Promise<ActionResult> {
         shipId: plan.shipId,
         ruteAsal: plan.ruteAsal,
         ruteTujuan: plan.ruteTujuan,
+        ruteAsalId: plan.ruteAsalId,
+        ruteTujuanId: plan.ruteTujuanId,
         tglStart: plan.eta,
       },
     }),

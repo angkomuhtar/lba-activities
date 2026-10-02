@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { JettyRouteSelect, type JettyOption } from "@/components/jetty-route-select";
 
 export interface VoyageActivity {
   id: string;
@@ -29,6 +30,8 @@ export interface VoyageItem {
   id: string;
   ruteAsal: string | null;
   ruteTujuan: string | null;
+  ruteAsalId: string | null;
+  ruteTujuanId: string | null;
   shipper: string | null;
   statusBayar: PaymentStatus | null;
   invoiceNomor: string | null;
@@ -51,12 +54,13 @@ interface VoyagesProps {
   shipId: string;
   canManage: boolean;
   voyages: VoyageItem[];
+  jetties: JettyOption[];
 }
 
-export function Voyages({ shipId, canManage, voyages }: VoyagesProps) {
+export function Voyages({ shipId, canManage, voyages, jetties }: VoyagesProps) {
   return (
     <div className="space-y-4">
-      {canManage && <AddVoyageForm shipId={shipId} />}
+      {canManage && <AddVoyageForm shipId={shipId} jetties={jetties} />}
 
       {voyages.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -65,7 +69,7 @@ export function Voyages({ shipId, canManage, voyages }: VoyagesProps) {
       ) : (
         <div className="space-y-3">
           {voyages.map((v) => (
-            <VoyageCard key={v.id} voyage={v} canManage={canManage} />
+            <VoyageCard key={v.id} voyage={v} canManage={canManage} jetties={jetties} />
           ))}
         </div>
       )}
@@ -105,8 +109,6 @@ function longestActivity(
 }
 
 type VoyageField =
-  | "ruteAsal"
-  | "ruteTujuan"
   | "shipper"
   | "tglStart"
   | "tglEnd"
@@ -116,8 +118,6 @@ type VoyageField =
   | "spalTanggal";
 
 const FIELDS: { name: VoyageField; label: string; type?: string }[] = [
-  { name: "ruteAsal", label: "Rute Asal" },
-  { name: "ruteTujuan", label: "Rute Tujuan" },
   { name: "shipper", label: "Shipper" },
   { name: "tglStart", label: "Tanggal Mulai", type: "date" },
   { name: "tglEnd", label: "Tanggal Selesai", type: "date" },
@@ -134,9 +134,35 @@ const NOR_FIELDS: { name: keyof VoyageItem; label: string }[] = [
   { name: "norBongkarEnd", label: "NOR Bongkar Selesai" },
 ];
 
-function VoyageFields({ disabled }: { disabled: boolean }) {
+function VoyageFields({
+  disabled,
+  jetties,
+  voyage,
+}: {
+  disabled: boolean;
+  jetties: JettyOption[];
+  voyage?: VoyageItem;
+}) {
   return (
     <div className="grid grid-cols-2 gap-3">
+      <JettyRouteSelect
+        id="ruteAsal"
+        name="ruteAsal"
+        label="Rute Asal"
+        jetties={jetties}
+        defaultValue={voyage?.ruteAsal}
+        defaultValueId={voyage?.ruteAsalId}
+        disabled={disabled}
+      />
+      <JettyRouteSelect
+        id="ruteTujuan"
+        name="ruteTujuan"
+        label="Rute Tujuan"
+        jetties={jetties}
+        defaultValue={voyage?.ruteTujuan}
+        defaultValueId={voyage?.ruteTujuanId}
+        disabled={disabled}
+      />
       {FIELDS.map((f) => (
         <div key={f.name} className="space-y-2">
           <Label htmlFor={f.name}>{f.label}</Label>
@@ -234,7 +260,7 @@ function InvoiceNomorField({
   );
 }
 
-function AddVoyageForm({ shipId }: { shipId: string }) {
+function AddVoyageForm({ shipId, jetties }: { shipId: string; jetties: JettyOption[] }) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     (prev, formData) => createVoyage(shipId, prev, formData),
     undefined,
@@ -254,7 +280,7 @@ function AddVoyageForm({ shipId }: { shipId: string }) {
         <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">{state.success}</p>
       )}
 
-      <VoyageFields disabled={pending} />
+      <VoyageFields disabled={pending} jetties={jetties} />
       <div className="grid grid-cols-2 gap-3">
         <StatusBayarField id="statusBayar" disabled={pending} />
         <InvoiceNomorField id="invoiceNomor" disabled={pending} />
@@ -273,11 +299,11 @@ function AddVoyageForm({ shipId }: { shipId: string }) {
   );
 }
 
-function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: boolean }) {
+function VoyageCard({ voyage, canManage, jetties }: { voyage: VoyageItem; canManage: boolean; jetties: JettyOption[] }) {
   const [editing, setEditing] = useState(false);
 
   if (editing && canManage) {
-    return <EditVoyageForm voyage={voyage} onCancel={() => setEditing(false)} />;
+    return <EditVoyageForm voyage={voyage} onCancel={() => setEditing(false)} jetties={jetties} />;
   }
 
   const longest = longestActivity(voyage.activities);
@@ -403,7 +429,15 @@ function VoyageCard({ voyage, canManage }: { voyage: VoyageItem; canManage: bool
   );
 }
 
-function EditVoyageForm({ voyage, onCancel }: { voyage: VoyageItem; onCancel: () => void }) {
+function EditVoyageForm({
+  voyage,
+  onCancel,
+  jetties,
+}: {
+  voyage: VoyageItem;
+  onCancel: () => void;
+  jetties: JettyOption[];
+}) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     (prev, formData) => updateVoyage(voyage.id, prev, formData),
     undefined,
@@ -426,6 +460,24 @@ function EditVoyageForm({ voyage, onCancel }: { voyage: VoyageItem; onCancel: ()
       )}
 
       <div className="grid grid-cols-2 gap-3">
+        <JettyRouteSelect
+          id={`ruteAsal-${voyage.id}`}
+          name="ruteAsal"
+          label="Rute Asal"
+          jetties={jetties}
+          defaultValue={voyage.ruteAsal}
+          defaultValueId={voyage.ruteAsalId}
+          disabled={pending}
+        />
+        <JettyRouteSelect
+          id={`ruteTujuan-${voyage.id}`}
+          name="ruteTujuan"
+          label="Rute Tujuan"
+          jetties={jetties}
+          defaultValue={voyage.ruteTujuan}
+          defaultValueId={voyage.ruteTujuanId}
+          disabled={pending}
+        />
         {FIELDS.map((f) => (
           <div key={f.name} className="space-y-2">
             <Label htmlFor={`${f.name}-${voyage.id}`}>{f.label}</Label>
