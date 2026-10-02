@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { getShipDetail, statusColor, statusText } from "@/lib/ships";
+import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -29,10 +30,18 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
   const canManageStock = await can(sessionUser.role, PERMS.stockManage);
   const latest = ship.activities[0] ?? null;
 
+  const jetties = await prisma.jetty.findMany({
+    where: { isActive: true },
+    orderBy: { nama: "asc" },
+    select: { id: true, nama: true, location: true, type: true },
+  });
+
   const voyages: VoyageItem[] = ship.voyages.map((v) => ({
     id: v.id,
     ruteAsal: v.ruteAsal,
     ruteTujuan: v.ruteTujuan,
+    ruteAsalId: v.ruteAsalId,
+    ruteTujuanId: v.ruteTujuanId,
     shipper: v.shipper,
     statusBayar: v.statusBayar,
     invoiceNomor: v.invoiceNomor,
@@ -105,7 +114,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
             <CardTitle>Data Pelayaran</CardTitle>
           </CardHeader>
           <CardContent>
-            <Voyages shipId={ship.id} voyages={voyages} canManage={canManage} />
+            <Voyages shipId={ship.id} voyages={voyages} jetties={jetties} canManage={canManage} />
           </CardContent>
         </Card>
 

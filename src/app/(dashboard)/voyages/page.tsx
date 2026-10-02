@@ -14,7 +14,7 @@ export default async function VoyagesPage() {
 
   const canManage = await can(user.role, PERMS.shipManage);
 
-  const [ships, voyages] = await Promise.all([
+  const [ships, voyages, jetties] = await Promise.all([
     prisma.ship.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true } }),
     prisma.voyage.findMany({
       orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
@@ -22,6 +22,11 @@ export default async function VoyagesPage() {
         ship: { select: { nama: true } },
         activities: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] },
       },
+    }),
+    prisma.jetty.findMany({
+      where: { isActive: true },
+      orderBy: { nama: "asc" },
+      select: { id: true, nama: true, location: true, type: true },
     }),
   ]);
 
@@ -31,6 +36,8 @@ export default async function VoyagesPage() {
     shipName: v.ship.nama,
     ruteAsal: v.ruteAsal,
     ruteTujuan: v.ruteTujuan,
+    ruteAsalId: v.ruteAsalId,
+    ruteTujuanId: v.ruteTujuanId,
     shipper: v.shipper,
     statusBayar: v.statusBayar,
     invoiceNomor: v.invoiceNomor,
@@ -55,7 +62,7 @@ export default async function VoyagesPage() {
     })),
   }));
 
-  return <VoyagesClient ships={ships} voyages={items} canManage={canManage} />;
+  return <VoyagesClient ships={ships} voyages={items} jetties={jetties} canManage={canManage} />;
 }
 
 function toInputDate(value: Date): string {

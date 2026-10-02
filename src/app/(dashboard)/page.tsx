@@ -13,6 +13,7 @@ import { getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/role-permissions";
 import { PERMS } from "@/lib/perm-ids";
 import { getShipsWithStatus } from "@/lib/ships";
+import { prisma } from "@/lib/prisma";
 import {
   getPersistedAlerts,
   getUnpaidVoyages,
@@ -71,13 +72,18 @@ export default async function DashboardPage({
 
   const canViewDocuments = await can(user.role, PERMS.documentView);
 
-  const [data, alerts, perShip, unpaid, expiringDocs, trips] = await Promise.all([
+  const [data, alerts, perShip, unpaid, expiringDocs, trips, jetties] = await Promise.all([
     getShipsWithStatus(),
     getPersistedAlerts(2),
     getVoyagesPerShipMonthly(),
     getUnpaidVoyages(),
     canViewDocuments ? getExpiringDocuments(30) : Promise.resolve([]),
     getVoyageTrips(),
+    prisma.jetty.findMany({
+      where: { isActive: true },
+      orderBy: { nama: "asc" },
+      select: { id: true, nama: true, location: true, type: true },
+    }),
   ]);
 
   const count = (s: "hijau" | "kuning" | "merah" | null) =>
@@ -400,7 +406,7 @@ export default async function DashboardPage({
 
       <VoyageTripReport trips={trips} />
 
-      <ShipBoard data={data} />
+      <ShipBoard data={data} jetties={jetties} />
     </div>
   );
 }

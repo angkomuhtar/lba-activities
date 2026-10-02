@@ -75,12 +75,16 @@ model Ship {
 }
 
 model Voyage {
-  id         String         @id @default(uuid())
-  shipId     String
-  ship       Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  ruteAsal   String?
-  ruteTujuan String?
-  shipper    String?
+  id          String         @id @default(uuid())
+  shipId      String
+  ship        Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  ruteAsal    String?
+  ruteTujuan  String?
+  ruteAsalId  String?
+  ruteTujuanId String?
+  ruteAsalJetty  Jetty?      @relation("VoyageAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
+  ruteTujuanJetty Jetty?     @relation("VoyageTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
+  shipper     String?
   tglStart   DateTime?
   tglEnd     DateTime?
   siNomor    String?
@@ -165,6 +169,10 @@ model VoyagePlan {
   ship       Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
   ruteAsal   String?   @map("rute_asal")
   ruteTujuan String?   @map("rute_tujuan")
+  ruteAsalId   String?   @map("rute_asal_id")
+  ruteTujuanId String?   @map("rute_tujuan_id")
+  ruteAsalJetty  Jetty?  @relation("PlanAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
+  ruteTujuanJetty Jetty? @relation("PlanTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
   eta        DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -173,14 +181,26 @@ model VoyagePlan {
 }
 
 model Jetty {
-  id        String   @id @default(uuid())
-  nama      String   @unique
+  id        String    @id @default(uuid())
+  nama      String    @unique
   alias     String?
-  lat       Float
-  lon       Float
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  location  String?
+  lat       Float?
+  lon       Float?
+  type      JettyType?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  voyagesAsal   Voyage[]     @relation("VoyageAsal")
+  voyagesTujuan Voyage[]     @relation("VoyageTujuan")
+  plansAsal     VoyagePlan[] @relation("PlanAsal")
+  plansTujuan   VoyagePlan[] @relation("PlanTujuan")
 
   @@map("jetties")
+}
+
+enum JettyType {
+  LOADING
+  DISCHARGING
 }

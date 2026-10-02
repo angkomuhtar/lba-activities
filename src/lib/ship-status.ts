@@ -43,6 +43,8 @@ export type ShipWithStatus = {
     id: string;
     ruteAsal: string | null;
     ruteTujuan: string | null;
+    ruteAsalId: string | null;
+    ruteTujuanId: string | null;
     eta: string | null;
   } | null;
 };

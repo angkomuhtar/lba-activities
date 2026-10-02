@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import type { ShipWithStatus } from "@/lib/ship-status";
+import { JettyRouteSelect, type JettyOption } from "@/components/jetty-route-select";
 import { statusColor, statusText } from "@/lib/ship-status";
 import { formatDate, formatNumber } from "@/lib/format";
 import { paginate, usePage } from "@/lib/use-pagination";
@@ -51,7 +52,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "merah", label: "Merah" },
 ];
 
-export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
+export function ShipBoard({ data, jetties }: { data: ShipWithStatus[]; jetties: JettyOption[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("semua");
 
@@ -122,7 +123,7 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
       ) : (
         <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
           {filtered.map((card) => (
-            <ShipCard key={card.ship.id} card={card} />
+            <ShipCard key={card.ship.id} card={card} jetties={jetties} />
           ))}
         </div>
       )}
@@ -130,7 +131,7 @@ export function ShipBoard({ data }: { data: ShipWithStatus[] }) {
   );
 }
 
-function ShipCard({ card }: { card: ShipWithStatus }) {
+function ShipCard({ card, jetties }: { card: ShipWithStatus; jetties: JettyOption[] }) {
   const {
     ship,
     latest,
@@ -390,6 +391,7 @@ function ShipCard({ card }: { card: ShipWithStatus }) {
         <PlanModal
           shipId={ship.id}
           plan={nextPlan}
+          jetties={jetties}
           onClose={() => setPlanOpen(false)}
         />
       )}
@@ -609,10 +611,12 @@ function PlanSection({
 function PlanModal({
   shipId,
   plan,
+  jetties,
   onClose,
 }: {
   shipId: string;
   plan: ShipWithStatus["nextPlan"];
+  jetties: JettyOption[];
   onClose: () => void;
 }) {
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
@@ -652,25 +656,23 @@ function PlanModal({
         </div>
 
         <form action={formAction} className='space-y-4'>
-          <div className='space-y-2'>
-            <Label htmlFor={`planAsal-${shipId}`}>Rute Asal</Label>
-            <Input
-              id={`planAsal-${shipId}`}
-              name='ruteAsal'
-              placeholder='Contoh: Samarinda'
-              defaultValue={plan?.ruteAsal ?? ""}
-            />
-          </div>
+          <JettyRouteSelect
+            id={`planAsal-${shipId}`}
+            name='ruteAsal'
+            label='Rute Asal'
+            jetties={jetties}
+            defaultValue={plan?.ruteAsal}
+            defaultValueId={plan?.ruteAsalId}
+          />
 
-          <div className='space-y-2'>
-            <Label htmlFor={`planTujuan-${shipId}`}>Rute Tujuan</Label>
-            <Input
-              id={`planTujuan-${shipId}`}
-              name='ruteTujuan'
-              placeholder='Contoh: Surabaya'
-              defaultValue={plan?.ruteTujuan ?? ""}
-            />
-          </div>
+          <JettyRouteSelect
+            id={`planTujuan-${shipId}`}
+            name='ruteTujuan'
+            label='Rute Tujuan'
+            jetties={jetties}
+            defaultValue={plan?.ruteTujuan}
+            defaultValueId={plan?.ruteTujuanId}
+          />
 
           <div className='space-y-2'>
             <Label htmlFor={`planEta-${shipId}`}>ETA (Tanggal Mulai)</Label>

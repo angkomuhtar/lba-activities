@@ -5,6 +5,7 @@ import {
   ShieldCheck,
   KeyRound,
   Ship,
+  Anchor,
   Compass,
   PenLine,
   Fuel,
@@ -55,15 +56,7 @@ export default async function Sidebar({ role }: SidebarProps) {
           <NavSubmenu
             icon={<BarChart3 className='size-4' />}
             label='Laporan'
-            items={[{ href: '/laporan/aktivitas', label: 'Laporan Aktivitas' }]}
-          />
-        )}
-
-        {canViewShips && (
-          <NavLink
-            href='/ships'
-            icon={<Ship className='size-4' />}
-            label='Kapal'
+            items={[{ href: "/laporan/aktivitas", label: "Laporan Aktivitas" }]}
           />
         )}
 
@@ -96,6 +89,26 @@ export default async function Sidebar({ role }: SidebarProps) {
             href='/documents'
             icon={<FileText className='size-4' />}
             label='Document'
+          />
+        )}
+
+        <p className='mt-6 px-3 pb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground'>
+          Master
+        </p>
+
+        {canViewShips && (
+          <NavLink
+            href='/ships'
+            icon={<Ship className='size-4' />}
+            label='Kapal'
+          />
+        )}
+
+        {canViewShips && (
+          <NavLink
+            href='/jetties'
+            icon={<Anchor className='size-4' />}
+            label='Jetty'
           />
         )}
 
