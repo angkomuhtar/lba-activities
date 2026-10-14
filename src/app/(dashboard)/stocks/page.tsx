@@ -32,12 +32,22 @@ export default async function StocksPage() {
       prevByShip.set(rec.shipId, rec.sisaStok.toString());
   }
 
+  // Default rentang export: awal bulan ini s.d. hari ini.
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const defaultFrom = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+  const defaultTo = iso(now);
+
   return (
     <StocksClient
       ships={ships}
       stocks={stocks}
       prevByShip={prevByShip}
       canManage={canManage}
+      defaultFrom={defaultFrom}
+      defaultTo={defaultTo}
     />
   );
 }
