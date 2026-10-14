@@ -6,25 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 import { paginate, usePage } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import type { VoyageTrip } from "@/lib/voyages";
 import { getTripActivities } from "@/app/actions/ships";
 import { statusColor } from "@/lib/ship-status";
 
-export interface DischargeJetty {
+export interface TripJetty {
   id: string;
   nama: string;
   location: string | null;
+  type: "LOADING" | "DISCHARGING" | null;
 }
 
-export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jetties: DischargeJetty[] }) {
+export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jetties: TripJetty[] }) {
   const tripPage = usePage("tripPage");
+  const [jettyMuat, setJettyMuat] = useState("");
   const [jettyBongkar, setJettyBongkar] = useState("");
-  const filteredTrips = jettyBongkar
-    ? trips.filter((t) => t.ruteTujuanId === jettyBongkar)
-    : trips;
+  const loadingJetties = jetties.filter((j) => j.type === "LOADING");
+  const dischargingJetties = jetties.filter((j) => j.type === "DISCHARGING");
+  const filteredTrips = trips.filter(
+    (t) =>
+      (!jettyMuat || t.ruteAsalId === jettyMuat) &&
+      (!jettyBongkar || t.ruteTujuanId === jettyBongkar),
+  );
   const { rows: tripRows, page: tripSafe, totalPages: tripPages } = paginate(filteredTrips, tripPage, 10);
   const [activities, setActivities] = useState<Awaited<ReturnType<typeof getTripActivities>> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,23 +45,40 @@ export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jett
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <CardTitle>Riwayat Perjalanan Terakhir</CardTitle>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            Jetty Bongkar
-            <select
-              value={jettyBongkar}
-              onChange={(e) => setJettyBongkar(e.target.value)}
-              className="h-9 min-w-40 rounded-lg border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Semua</option>
-              {jetties.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.location ? `${j.nama} (${j.location})` : j.nama}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              Jetty Muat
+              <select
+                value={jettyMuat}
+                onChange={(e) => setJettyMuat(e.target.value)}
+                className="h-9 min-w-40 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Semua</option>
+                {loadingJetties.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.location ? `${j.nama} (${j.location})` : j.nama}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
+              Jetty Bongkar
+              <select
+                value={jettyBongkar}
+                onChange={(e) => setJettyBongkar(e.target.value)}
+                className="h-9 min-w-40 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Semua</option>
+                {dischargingJetties.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.location ? `${j.nama} (${j.location})` : j.nama}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -66,6 +89,7 @@ export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jett
                 <TableHead>Mulai</TableHead>
                 <TableHead>Selesai</TableHead>
                 <TableHead className="text-center">Hari</TableHead>
+                <TableHead className="text-right">Total Fuel (L)</TableHead>
                 <TableHead>Detail</TableHead>
               </TableRow>
             </TableHeader>
@@ -77,6 +101,7 @@ export function VoyageTripReport({ trips, jetties }: { trips: VoyageTrip[]; jett
                   <TableCell className="text-sm">{v.tglStart ? formatDate(v.tglStart) : "-"}</TableCell>
                   <TableCell className="text-sm">{v.tglEnd ? formatDate(v.tglEnd) : "-"}</TableCell>
                   <TableCell className="text-center text-sm">{v.jumlahHari ?? "-"}</TableCell>
+                  <TableCell className="text-right text-sm">{v.totalFuel === null ? "-" : formatNumber(v.totalFuel)}</TableCell>
                   <TableCell>
                     <Button variant="outline" size="sm" onClick={() => loadActivities(v.id)} disabled={loading}>
                       {loading ? <Loader2 className="size-4 animate-spin" /> : "Aktivitas"}

@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import type { StockRecord } from "@prisma/client";
-import { Loader2, Trash2 } from "lucide-react";
+import { Download, Loader2, Trash2 } from "lucide-react";
 import { createStock, deleteStock, type ActionResult } from "@/app/actions/ships";
 import { formatDate, formatNumber } from "@/lib/format";
 import { paginate, usePage } from "@/lib/use-pagination";
@@ -18,10 +18,30 @@ interface StocksClientProps {
   stocks: (StockRecord & { ship: { nama: string } })[];
   prevByShip: Map<string, string>;
   canManage: boolean;
+  defaultFrom: string;
+  defaultTo: string;
 }
 
-export function StocksClient({ ships, stocks, prevByShip, canManage }: StocksClientProps) {
+export function StocksClient({
+  ships,
+  stocks,
+  prevByShip,
+  canManage,
+  defaultFrom,
+  defaultTo,
+}: StocksClientProps) {
   const [shipId, setShipId] = useState(ships[0]?.id ?? "");
+  const [exportFrom, setExportFrom] = useState(defaultFrom);
+  const [exportTo, setExportTo] = useState(defaultTo);
+
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (exportFrom) params.set("from", exportFrom);
+    if (exportTo) params.set("to", exportTo);
+    if (shipId) params.set("shipId", shipId);
+    window.location.href = `/api/fuel/export?${params.toString()}`;
+  };
+
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(
     (prev, formData) => createStock(shipId, prev, formData),
     undefined,
@@ -179,6 +199,45 @@ export function StocksClient({ ships, stocks, prevByShip, canManage }: StocksCli
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3 border-b px-4 py-3">
+              <div className="space-y-1">
+                <Label htmlFor="export-from" className="text-xs text-muted-foreground">
+                  Dari Tanggal
+                </Label>
+                <Input
+                  id="export-from"
+                  type="date"
+                  value={exportFrom}
+                  onChange={(e) => setExportFrom(e.target.value)}
+                  className="h-9 w-40"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="export-to" className="text-xs text-muted-foreground">
+                  Sampai Tanggal
+                </Label>
+                <Input
+                  id="export-to"
+                  type="date"
+                  value={exportTo}
+                  onChange={(e) => setExportTo(e.target.value)}
+                  className="h-9 w-40"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleExport}
+                disabled={!exportFrom || !exportTo}
+              >
+                <Download className="size-4" />
+                Export Excel
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {shipId ? "Sesuai filter kapal yang dipilih." : "Semua kapal."}
+              </p>
             </div>
 
             {filtered.length === 0 ? (

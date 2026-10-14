@@ -255,45 +255,82 @@ export interface VoyageTrip {
   shipId: string;
   shipName: string;
   rute: string;
+  ruteAsalId: string | null;
   ruteTujuanId: string | null;
   tglStart: string | null;
   tglEnd: string | null;
   jumlahHari: number | null;
   activityCount: number;
+  totalFuel: number | null;
 }
 
-function jumlahHari(tglStart: Date | null, tglEnd: Date | null): number | null {
-  if (!tglStart) return null;
-  const end = tglEnd ?? new Date();
-  const s = new Date(tglStart); s.setHours(0,0,0,0);
-  const e = new Date(end); e.setHours(0,0,0,0);
-  const ms = e.getTime() - s.getTime();
-  if (ms < 0) return null;
-  return Math.floor(ms / 86400000) + 1;
+// Jumlah hari = cacah tanggal unik dari aktivitas voyage (2 aktivitas di hari
+// yang sama tetap dihitung 1 hari). Null bila voyage belum punya aktivitas.
+function jumlahHariAktivitas(dates: Date[]): number | null {
+  if (dates.length === 0) return null;
+  const days = new Set<number>();
+  for (const d of dates) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    days.add(x.getTime());
+  }
+  return days.size;
 }
 
 export async function getVoyageTrips(): Promise<VoyageTrip[]> {
-  const voyages = await prisma.voyage.findMany({
-    include: {
-      ship: { select: { nama: true } },
-      ruteAsalJetty: { select: { nama: true, location: true } },
-      ruteTujuanJetty: { select: { nama: true, location: true } },
-      _count: { select: { activities: true } },
-    },
-    orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
-  });
+  const [voyages, stocks] = await Promise.all([
+    prisma.voyage.findMany({
+      include: {
+        ship: { select: { nama: true } },
+        ruteAsalJetty: { select: { nama: true, location: true } },
+        ruteTujuanJetty: { select: { nama: true, location: true } },
+        activities: { select: { tanggal: true } },
+      },
+      orderBy: [{ tglStart: "desc" }, { createdAt: "desc" }],
+    }),
+    // Pemakaian fuel harian (ME + AE) per kapal, dijumlahkan per voyage
+    // berdasarkan rentang tanggal voyage.
+    prisma.stockRecord.findMany({
+      select: { shipId: true, tanggal: true, me: true, ae: true },
+    }),
+  ]);
+
+  const fuelByShip = new Map<string, { tanggal: Date; total: number }[]>();
+  for (const s of stocks) {
+    const arr = fuelByShip.get(s.shipId) ?? [];
+    arr.push({ tanggal: s.tanggal, total: Number(s.me) + Number(s.ae) });
+    fuelByShip.set(s.shipId, arr);
+  }
+
   return voyages.map((v) => {
     const rute = ruteLabel(v.ruteAsalJetty, v.ruteTujuanJetty, v.siNomor ? `SI ${v.siNomor}` : null);
+
+    let totalFuel: number | null = null;
+    if (v.tglStart) {
+      const start = new Date(v.tglStart);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(v.tglEnd ?? new Date());
+      end.setHours(23, 59, 59, 999);
+      const inRange = (fuelByShip.get(v.shipId) ?? []).filter(
+        (r) => r.tanggal >= start && r.tanggal <= end,
+      );
+      if (inRange.length > 0) {
+        totalFuel = inRange.reduce((sum, r) => sum + r.total, 0);
+      }
+    }
+
     return {
       id: v.id,
       shipId: v.shipId,
       shipName: v.ship.nama,
       rute,
+      ruteAsalId: v.ruteAsalId,
       ruteTujuanId: v.ruteTujuanId,
       tglStart: v.tglStart ? v.tglStart.toISOString() : null,
       tglEnd: v.tglEnd ? v.tglEnd.toISOString() : null,
-      jumlahHari: jumlahHari(v.tglStart, v.tglEnd),
-      activityCount: v._count.activities,
+      jumlahHari: jumlahHariAktivitas(v.activities.map((a) => a.tanggal)),
+      activityCount: v.activities.length,
+      totalFuel,
     };
   });
 }
