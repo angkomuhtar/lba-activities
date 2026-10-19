@@ -120,6 +120,8 @@ export async function getShipsWithStatus(): Promise<ShipWithStatus[]> {
         tanggal: r.tanggal.toISOString(),
         stokAwal: r.stokAwal.toString(),
         pengisian: r.pengisian.toString(),
+        transferMasuk: r.transferMasuk.toString(),
+        transferKeluar: r.transferKeluar.toString(),
         me: r.me.toString(),
         ae: r.ae.toString(),
         sisaStok: r.sisaStok.toString(),

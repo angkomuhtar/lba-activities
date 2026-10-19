@@ -34,6 +34,8 @@ export function StockList({ stocks, canManage }: StockListProps) {
               <TableHead>Tanggal</TableHead>
               <TableHead className="text-right">Stok Awal</TableHead>
               <TableHead className="text-right">Pengisian</TableHead>
+              <TableHead className="text-right">Trf Masuk</TableHead>
+              <TableHead className="text-right">Trf Keluar</TableHead>
               <TableHead className="text-right">ME</TableHead>
               <TableHead className="text-right">AE</TableHead>
               <TableHead className="text-right">Sisa</TableHead>
@@ -47,6 +49,12 @@ export function StockList({ stocks, canManage }: StockListProps) {
                 <TableCell>{formatDate(rec.tanggal)}</TableCell>
                 <TableCell className="text-right">{formatNumber(rec.stokAwal)}</TableCell>
                 <TableCell className="text-right">{formatNumber(rec.pengisian)}</TableCell>
+                <TableCell className="text-right text-emerald-600">
+                  {rec.transferMasuk.toString() === "0" ? "-" : formatNumber(rec.transferMasuk)}
+                </TableCell>
+                <TableCell className="text-right text-amber-600">
+                  {rec.transferKeluar.toString() === "0" ? "-" : formatNumber(rec.transferKeluar)}
+                </TableCell>
                 <TableCell className="text-right">{formatNumber(rec.me)}</TableCell>
                 <TableCell className="text-right">{formatNumber(rec.ae)}</TableCell>
                 <TableCell className="text-right font-medium">{formatNumber(rec.sisaStok)}</TableCell>

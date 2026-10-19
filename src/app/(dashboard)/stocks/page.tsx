@@ -14,7 +14,7 @@ export default async function StocksPage() {
 
   const canManage = await can(user.role, PERMS.stockManage);
 
-  const [ships, stocks] = await Promise.all([
+  const [ships, stocks, transfers] = await Promise.all([
     prisma.ship.findMany({
       orderBy: { nama: "asc" },
       select: { id: true, nama: true },
@@ -22,6 +22,13 @@ export default async function StocksPage() {
     prisma.stockRecord.findMany({
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
       include: { ship: { select: { nama: true } } },
+    }),
+    prisma.fuelTransfer.findMany({
+      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+      include: {
+        fromShip: { select: { nama: true } },
+        toShip: { select: { nama: true } },
+      },
     }),
   ]);
 
@@ -44,6 +51,16 @@ export default async function StocksPage() {
     <StocksClient
       ships={ships}
       stocks={stocks}
+      transfers={transfers.map((t) => ({
+        id: t.id,
+        tanggal: t.tanggal.toISOString(),
+        fromShipId: t.fromShipId,
+        fromShipName: t.fromShip.nama,
+        toShipId: t.toShipId,
+        toShipName: t.toShip.nama,
+        jumlah: t.jumlah.toString(),
+        catatan: t.catatan,
+      }))}
       prevByShip={prevByShip}
       canManage={canManage}
       defaultFrom={defaultFrom}

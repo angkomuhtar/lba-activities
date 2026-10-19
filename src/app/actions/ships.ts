@@ -27,11 +27,12 @@ async function requireActivityManage(): Promise<void> {
   }
 }
 
-async function requireStockManage(): Promise<void> {
+async function requireStockManage(): Promise<string> {
   const user = await getSessionUser();
   if (!user || !(await can(user.role, PERMS.stockManage))) {
     throw new Error("Anda tidak memiliki izin untuk input fuel.");
   }
+  return user.id;
 }
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -496,7 +497,7 @@ export async function createStock(
 
   // Stok awal otomatis = sisa stok dari data sebelumnya (kemarin).
   const prev = await prisma.stockRecord.findFirst({
-    where: { shipId, tanggal: { lt: D } },
+    where: { shipId, tanggal: { lte: D } },
     orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
   });
 
@@ -542,10 +543,157 @@ export async function deleteStock(id: string): Promise<ActionResult> {
   const rec = await prisma.stockRecord.findUnique({ where: { id } });
   if (!rec) return { error: "Data fuel tidak ditemukan." };
 
-  await prisma.stockRecord.delete({ where: { id } });
-  revalidatePath(`/ships/${rec.shipId}`);
+  if (rec.transferId) {
+    // Baris ini bagian dari transfer antar kapal: hapus transfernya sekaligus
+    // (relasi cascade menghapus kedua baris stock).
+    const transfer = await prisma.fuelTransfer.delete({ where: { id: rec.transferId } });
+    revalidatePath(`/ships/${transfer.fromShipId}`);
+    revalidatePath(`/ships/${transfer.toShipId}`);
+  } else {
+    await prisma.stockRecord.delete({ where: { id } });
+    revalidatePath(`/ships/${rec.shipId}`);
+  }
+
+  revalidatePath("/stocks");
   revalidatePath("/");
   return { success: "Data fuel berhasil dihapus." };
+}
+
+const transferSchema = z.object({
+  fromShipId: z.string().min(1, "Kapal asal wajib dipilih."),
+  toShipId: z.string().min(1, "Kapal tujuan wajib dipilih."),
+  tanggal: z.string().min(1, "Tanggal wajib diisi."),
+  jumlah: z.coerce.number().positive("Jumlah transfer harus lebih dari 0."),
+  catatan: z.string().trim().optional().nullable(),
+});
+
+export async function createFuelTransfer(
+  _prevState: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  let userId: string;
+  try {
+    userId = await requireStockManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const parsed = transferSchema.safeParse({
+    fromShipId: formData.get("fromShipId"),
+    toShipId: formData.get("toShipId"),
+    tanggal: formData.get("tanggal"),
+    jumlah: formData.get("jumlah"),
+    catatan: formData.get("catatan") || null,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { fromShipId, toShipId } = parsed.data;
+  if (fromShipId === toShipId) {
+    return { error: "Kapal asal dan tujuan harus berbeda." };
+  }
+
+  const D = parseDate(parsed.data.tanggal)!;
+  const jumlah = new Prisma.Decimal(parsed.data.jumlah);
+
+  const [fromShip, toShip] = await Promise.all([
+    prisma.ship.findUnique({ where: { id: fromShipId }, select: { nama: true } }),
+    prisma.ship.findUnique({ where: { id: toShipId }, select: { nama: true } }),
+  ]);
+  if (!fromShip) return { error: "Kapal asal tidak ditemukan." };
+  if (!toShip) return { error: "Kapal tujuan tidak ditemukan." };
+
+  // Saldo sebelum/tanggal transfer (record terakhir <= D) untuk tiap kapal.
+  const [prevFrom, prevTo] = await Promise.all([
+    prisma.stockRecord.findFirst({
+      where: { shipId: fromShipId, tanggal: { lte: D } },
+      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.stockRecord.findFirst({
+      where: { shipId: toShipId, tanggal: { lte: D } },
+      orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+    }),
+  ]);
+
+  const stokAwalFrom = prevFrom?.sisaStok ?? new Prisma.Decimal(0);
+  const stokAwalTo = prevTo?.sisaStok ?? new Prisma.Decimal(0);
+
+  if (jumlah.gt(stokAwalFrom)) {
+    return {
+      error: `Jumlah transfer melebihi sisa stok ${fromShip.nama} (sisa = ${stokAwalFrom.toString()} L).`,
+    };
+  }
+
+  const zero = new Prisma.Decimal(0);
+
+  await prisma.$transaction(async (tx) => {
+    const transfer = await tx.fuelTransfer.create({
+      data: {
+        tanggal: D,
+        fromShipId,
+        toShipId,
+        jumlah,
+        catatan: parsed.data.catatan || null,
+        createdById: userId,
+      },
+    });
+
+    await tx.stockRecord.create({
+      data: {
+        shipId: fromShipId,
+        tanggal: D,
+        stokAwal: stokAwalFrom,
+        pengisian: zero,
+        transferMasuk: zero,
+        transferKeluar: jumlah,
+        me: zero,
+        ae: zero,
+        sisaStok: stokAwalFrom.sub(jumlah),
+        catatan: parsed.data.catatan || `Transfer ke ${toShip.nama}`,
+        transferId: transfer.id,
+      },
+    });
+
+    await tx.stockRecord.create({
+      data: {
+        shipId: toShipId,
+        tanggal: D,
+        stokAwal: stokAwalTo,
+        pengisian: zero,
+        transferMasuk: jumlah,
+        transferKeluar: zero,
+        me: zero,
+        ae: zero,
+        sisaStok: stokAwalTo.add(jumlah),
+        catatan: parsed.data.catatan || `Transfer dari ${fromShip.nama}`,
+        transferId: transfer.id,
+      },
+    });
+  });
+
+  revalidatePath("/stocks");
+  revalidatePath("/");
+  revalidatePath(`/ships/${fromShipId}`);
+  revalidatePath(`/ships/${toShipId}`);
+  return {
+    success: `Transfer ${jumlah.toString()} L dari ${fromShip.nama} ke ${toShip.nama} berhasil.`,
+  };
+}
+
+export async function deleteFuelTransfer(id: string): Promise<ActionResult> {
+  try {
+    await requireStockManage();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const transfer = await prisma.fuelTransfer.findUnique({ where: { id } });
+  if (!transfer) return { error: "Transfer tidak ditemukan." };
+
+  await prisma.fuelTransfer.delete({ where: { id } });
+  revalidatePath(`/ships/${transfer.fromShipId}`);
+  revalidatePath(`/ships/${transfer.toShipId}`);
+  revalidatePath("/stocks");
+  revalidatePath("/");
+  return { success: "Transfer berhasil dihapus." };
 }
 
 // ── Voyage Plan ──────────────────────────────────────────────────────────────

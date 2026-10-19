@@ -34,6 +34,8 @@ export type ShipWithStatus = {
     tanggal: string;
     stokAwal: string;
     pengisian: string;
+    transferMasuk: string;
+    transferKeluar: string;
     me: string;
     ae: string;
     sisaStok: string;

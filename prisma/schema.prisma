@@ -67,6 +67,8 @@ model Ship {
   activities ShipActivity[]
   stocks    StockRecord[]
   voyagePlan VoyagePlan?
+  fuelTransfersOut FuelTransfer[] @relation("TransferFrom")
+  fuelTransfersIn  FuelTransfer[] @relation("TransferTo")
   createdById String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -138,13 +140,36 @@ model StockRecord {
   tanggal   DateTime
   stokAwal  Decimal
   pengisian Decimal  @default(0)
+  transferMasuk  Decimal  @default(0)
+  transferKeluar Decimal  @default(0)
   me        Decimal
   ae        Decimal
   sisaStok  Decimal
   catatan   String?
+  transferId String?
+  transfer   FuelTransfer? @relation(fields: [transferId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  @@index([shipId])
   @@map("stock_records")
+}
+
+model FuelTransfer {
+  id          String   @id @default(uuid())
+  tanggal     DateTime
+  fromShipId  String
+  toShipId    String
+  fromShip    Ship     @relation("TransferFrom", fields: [fromShipId], references: [id], onDelete: Cascade)
+  toShip      Ship     @relation("TransferTo", fields: [toShipId], references: [id], onDelete: Cascade)
+  jumlah      Decimal
+  catatan     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  records     StockRecord[]
+
+  @@index([fromShipId])
+  @@index([toShipId])
+  @@map("fuel_transfers")
 }
 
 model Document {

@@ -55,6 +55,8 @@ export async function GET(request: Request) {
     { header: "Kapal", key: "kapal", width: 22 },
     { header: "Stok Awal", key: "stokAwal", width: 14 },
     { header: "Pengisian", key: "pengisian", width: 14 },
+    { header: "Transfer Masuk", key: "transferMasuk", width: 14 },
+    { header: "Transfer Keluar", key: "transferKeluar", width: 14 },
     { header: "ME", key: "me", width: 14 },
     { header: "AE", key: "ae", width: 14 },
     { header: "Pemakaian (ME+AE)", key: "pemakaian", width: 18 },
@@ -71,13 +73,19 @@ export async function GET(request: Request) {
   });
 
   let totalPengisian = 0;
+  let totalTransferMasuk = 0;
+  let totalTransferKeluar = 0;
   let totalMe = 0;
   let totalAe = 0;
 
   for (const rec of records) {
     const me = Number(rec.me);
     const ae = Number(rec.ae);
+    const transferMasuk = Number(rec.transferMasuk);
+    const transferKeluar = Number(rec.transferKeluar);
     totalPengisian += Number(rec.pengisian);
+    totalTransferMasuk += transferMasuk;
+    totalTransferKeluar += transferKeluar;
     totalMe += me;
     totalAe += ae;
 
@@ -86,6 +94,8 @@ export async function GET(request: Request) {
       kapal: rec.ship.nama,
       stokAwal: Number(rec.stokAwal),
       pengisian: Number(rec.pengisian),
+      transferMasuk,
+      transferKeluar,
       me,
       ae,
       pemakaian: me + ae,
@@ -94,6 +104,8 @@ export async function GET(request: Request) {
     });
     row.getCell("pengisian").numFmt = "#,##0.###";
     row.getCell("stokAwal").numFmt = "#,##0.###";
+    row.getCell("transferMasuk").numFmt = "#,##0.###";
+    row.getCell("transferKeluar").numFmt = "#,##0.###";
     row.getCell("me").numFmt = "#,##0.###";
     row.getCell("ae").numFmt = "#,##0.###";
     row.getCell("pemakaian").numFmt = "#,##0.###";
@@ -104,17 +116,19 @@ export async function GET(request: Request) {
     const totalRow = ws.addRow({
       kapal: "TOTAL",
       pengisian: totalPengisian,
+      transferMasuk: totalTransferMasuk,
+      transferKeluar: totalTransferKeluar,
       me: totalMe,
       ae: totalAe,
       pemakaian: totalMe + totalAe,
     });
     totalRow.font = { bold: true };
-    for (const key of ["pengisian", "me", "ae", "pemakaian"]) {
+    for (const key of ["pengisian", "transferMasuk", "transferKeluar", "me", "ae", "pemakaian"]) {
       totalRow.getCell(key).numFmt = "#,##0.###";
     }
   }
 
-  ws.autoFilter = { from: "A1", to: `I${records.length + 1}` };
+  ws.autoFilter = { from: "A1", to: `K${records.length + 1}` };
   ws.views = [{ state: "frozen", ySplit: 1 }];
 
   const buffer = await wb.xlsx.writeBuffer();
