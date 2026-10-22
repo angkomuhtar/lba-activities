@@ -488,13 +488,20 @@ async function recalculateStockBalances(tx: Prisma.TransactionClient, shipId: st
       .sub(record.ae)
       .sub(record.transferKeluar);
 
-    await tx.stockRecord.update({
-      where: { id: record.id },
-      data: { stokAwal, sisaStok },
-    });
+    if (
+      record.stokAwal.toString() !== stokAwal.toString() ||
+      record.sisaStok.toString() !== sisaStok.toString()
+    ) {
+      await tx.stockRecord.update({
+        where: { id: record.id },
+        data: { stokAwal, sisaStok },
+      });
+    }
     previousSisa = sisaStok;
   }
 }
+
+const STOCK_TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 30_000 };
 
 export async function createStock(
   shipId: string,
@@ -552,7 +559,7 @@ export async function createStock(
     });
     await recalculateStockBalances(tx, shipId);
     return tx.stockRecord.findUniqueOrThrow({ where: { id: record.id } });
-  });
+  }, STOCK_TRANSACTION_OPTIONS);
 
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/");
@@ -576,14 +583,14 @@ export async function deleteStock(id: string): Promise<ActionResult> {
       await recalculateStockBalances(tx, current.fromShipId);
       await recalculateStockBalances(tx, current.toShipId);
       return current;
-    });
+    }, STOCK_TRANSACTION_OPTIONS);
     revalidatePath(`/ships/${transfer.fromShipId}`);
     revalidatePath(`/ships/${transfer.toShipId}`);
   } else {
     await prisma.$transaction(async (tx) => {
       await tx.stockRecord.delete({ where: { id } });
       await recalculateStockBalances(tx, rec.shipId);
-    });
+    }, STOCK_TRANSACTION_OPTIONS);
     revalidatePath(`/ships/${rec.shipId}`);
   }
 
@@ -704,7 +711,7 @@ export async function createFuelTransfer(
 
     await recalculateStockBalances(tx, fromShipId);
     await recalculateStockBalances(tx, toShipId);
-  });
+  }, STOCK_TRANSACTION_OPTIONS);
 
   revalidatePath("/stocks");
   revalidatePath("/");
@@ -728,7 +735,7 @@ export async function deleteFuelTransfer(id: string): Promise<ActionResult> {
     await tx.fuelTransfer.delete({ where: { id } });
     await recalculateStockBalances(tx, transfer.fromShipId);
     await recalculateStockBalances(tx, transfer.toShipId);
-  });
+  }, STOCK_TRANSACTION_OPTIONS);
   revalidatePath(`/ships/${transfer.fromShipId}`);
   revalidatePath(`/ships/${transfer.toShipId}`);
   revalidatePath("/stocks");

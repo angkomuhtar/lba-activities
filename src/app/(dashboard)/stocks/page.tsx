@@ -50,7 +50,20 @@ export default async function StocksPage() {
   return (
     <StocksClient
       ships={ships}
-      stocks={stocks}
+      stocks={stocks.map((rec) => ({
+        id: rec.id,
+        shipId: rec.shipId,
+        tanggal: rec.tanggal.toISOString(),
+        stokAwal: rec.stokAwal.toString(),
+        pengisian: rec.pengisian.toString(),
+        transferMasuk: rec.transferMasuk.toString(),
+        transferKeluar: rec.transferKeluar.toString(),
+        me: rec.me.toString(),
+        ae: rec.ae.toString(),
+        sisaStok: rec.sisaStok.toString(),
+        catatan: rec.catatan,
+        ship: rec.ship,
+      }))}
       transfers={transfers.map((t) => ({
         id: t.id,
         tanggal: t.tanggal.toISOString(),

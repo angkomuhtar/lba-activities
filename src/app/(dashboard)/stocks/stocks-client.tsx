@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useMemo, useState, useTransition } from "react";
-import type { StockRecord } from "@prisma/client";
 import { ArrowLeftRight, Download, Loader2, Trash2 } from "lucide-react";
 import {
   createStock,
@@ -30,9 +29,24 @@ interface TransferRow {
   catatan: string | null;
 }
 
+interface StockRow {
+  id: string;
+  shipId: string;
+  tanggal: string;
+  stokAwal: string;
+  pengisian: string;
+  transferMasuk: string;
+  transferKeluar: string;
+  me: string;
+  ae: string;
+  sisaStok: string;
+  catatan: string | null;
+  ship: { nama: string };
+}
+
 interface StocksClientProps {
   ships: { id: string; nama: string }[];
-  stocks: (StockRecord & { ship: { nama: string } })[];
+  stocks: StockRow[];
   transfers: TransferRow[];
   prevByShip: Map<string, string>;
   canManage: boolean;
@@ -192,9 +206,10 @@ export function StocksClient({
               <div className="space-y-2">
                 <Label htmlFor="stokAwal">Stok Awal</Label>
                 {hasPrevious ? (
-                  <Input id="stokAwal" name="stokAwal" value={prevSisa} disabled readOnly className="text-muted-foreground" />
+                  <Input key="stok-awal-auto" id="stokAwal" name="stokAwal" value={prevSisa} disabled readOnly className="text-muted-foreground" />
                 ) : (
                   <Input
+                    key="stok-awal-manual"
                     id="stokAwal"
                     name="stokAwal"
                     type="number"
