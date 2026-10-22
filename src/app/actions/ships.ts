@@ -472,6 +472,30 @@ const stockSchema = z.object({
   catatan: z.string().trim().optional().nullable(),
 });
 
+async function recalculateStockBalances(tx: Prisma.TransactionClient, shipId: string) {
+  const records = await tx.stockRecord.findMany({
+    where: { shipId },
+    orderBy: [{ tanggal: "asc" }, { createdAt: "asc" }],
+  });
+
+  let previousSisa: Prisma.Decimal | null = null;
+  for (const record of records) {
+    const stokAwal: Prisma.Decimal = previousSisa ?? record.stokAwal;
+    const sisaStok: Prisma.Decimal = stokAwal
+      .add(record.pengisian)
+      .add(record.transferMasuk)
+      .sub(record.me)
+      .sub(record.ae)
+      .sub(record.transferKeluar);
+
+    await tx.stockRecord.update({
+      where: { id: record.id },
+      data: { stokAwal, sisaStok },
+    });
+    previousSisa = sisaStok;
+  }
+}
+
 export async function createStock(
   shipId: string,
   _prevState: ActionResult,
@@ -511,27 +535,28 @@ export async function createStock(
   }
 
   const pengisian = new Prisma.Decimal(parsed.data.pengisian ?? 0);
-  const sisaStok = stokAwal
-    .add(pengisian)
-    .sub(new Prisma.Decimal(parsed.data.me))
-    .sub(new Prisma.Decimal(parsed.data.ae));
-
-  await prisma.stockRecord.create({
-    data: {
-      shipId,
-      tanggal: D,
-      stokAwal,
-      pengisian,
-      me: new Prisma.Decimal(parsed.data.me),
-      ae: new Prisma.Decimal(parsed.data.ae),
-      sisaStok,
-      catatan: parsed.data.catatan || null,
-    },
+  const me = new Prisma.Decimal(parsed.data.me);
+  const ae = new Prisma.Decimal(parsed.data.ae);
+  const created = await prisma.$transaction(async (tx) => {
+    const record = await tx.stockRecord.create({
+      data: {
+        shipId,
+        tanggal: D,
+        stokAwal,
+        pengisian,
+        me,
+        ae,
+        sisaStok: stokAwal.add(pengisian).sub(me).sub(ae),
+        catatan: parsed.data.catatan || null,
+      },
+    });
+    await recalculateStockBalances(tx, shipId);
+    return tx.stockRecord.findUniqueOrThrow({ where: { id: record.id } });
   });
 
   revalidatePath(`/ships/${shipId}`);
   revalidatePath("/");
-  return { success: `Data fuel berhasil disimpan (sisa = ${sisaStok.toString()}).` };
+  return { success: `Data fuel berhasil disimpan (sisa = ${created.sisaStok.toString()}).` };
 }
 
 export async function deleteStock(id: string): Promise<ActionResult> {
@@ -545,12 +570,20 @@ export async function deleteStock(id: string): Promise<ActionResult> {
 
   if (rec.transferId) {
     // Baris ini bagian dari transfer antar kapal: hapus transfernya sekaligus
-    // (relasi cascade menghapus kedua baris stock).
-    const transfer = await prisma.fuelTransfer.delete({ where: { id: rec.transferId } });
+    // (relasi cascade menghapus kedua baris stock), lalu hitung ulang keduanya.
+    const transfer = await prisma.$transaction(async (tx) => {
+      const current = await tx.fuelTransfer.delete({ where: { id: rec.transferId! } });
+      await recalculateStockBalances(tx, current.fromShipId);
+      await recalculateStockBalances(tx, current.toShipId);
+      return current;
+    });
     revalidatePath(`/ships/${transfer.fromShipId}`);
     revalidatePath(`/ships/${transfer.toShipId}`);
   } else {
-    await prisma.stockRecord.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.stockRecord.delete({ where: { id } });
+      await recalculateStockBalances(tx, rec.shipId);
+    });
     revalidatePath(`/ships/${rec.shipId}`);
   }
 
@@ -668,6 +701,9 @@ export async function createFuelTransfer(
         transferId: transfer.id,
       },
     });
+
+    await recalculateStockBalances(tx, fromShipId);
+    await recalculateStockBalances(tx, toShipId);
   });
 
   revalidatePath("/stocks");
@@ -688,7 +724,11 @@ export async function deleteFuelTransfer(id: string): Promise<ActionResult> {
   const transfer = await prisma.fuelTransfer.findUnique({ where: { id } });
   if (!transfer) return { error: "Transfer tidak ditemukan." };
 
-  await prisma.fuelTransfer.delete({ where: { id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.fuelTransfer.delete({ where: { id } });
+    await recalculateStockBalances(tx, transfer.fromShipId);
+    await recalculateStockBalances(tx, transfer.toShipId);
+  });
   revalidatePath(`/ships/${transfer.fromShipId}`);
   revalidatePath(`/ships/${transfer.toShipId}`);
   revalidatePath("/stocks");
