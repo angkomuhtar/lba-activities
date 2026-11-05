@@ -1,4 +1,4 @@
-import type { ActivityStatus, PaymentStatus } from "@prisma/client";
+import type { ActivityStatus, PaymentStatus, VoyageType } from "@prisma/client";
 
 export type { ActivityStatus, PaymentStatus };
 
@@ -11,6 +11,7 @@ export type ShipWithStatus = {
   ruteAsal: string | null;
   ruteTujuan: string | null;
   shipper: string | null;
+  tipePelayaran: VoyageType | null;
   statusBayar: PaymentStatus | null;
   invoiceNomor: string | null;
   loadingStart: string | null;

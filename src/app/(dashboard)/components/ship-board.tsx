@@ -142,6 +142,7 @@ function ShipCard({ card, jetties }: { card: ShipWithStatus; jetties: JettyOptio
     ruteAsal,
     ruteTujuan,
     shipper,
+    tipePelayaran,
     statusBayar,
     invoiceNomor,
     loadingStart,
@@ -302,6 +303,13 @@ function ShipCard({ card, jetties }: { card: ShipWithStatus; jetties: JettyOptio
         <div className='flex items-center gap-2 text-sm'>
           <span className='text-muted-foreground'>Shipper:</span>
           <span className='truncate font-medium'>{shipper ?? "?"}</span>
+        </div>
+
+        <div className='flex items-center gap-2 text-sm'>
+          <span className='text-muted-foreground'>Jenis Pelayaran:</span>
+          <span className='truncate font-medium'>
+            {tipePelayaran === "PRORATA" ? "Prorata" : tipePelayaran ?? "?"}
+          </span>
         </div>
 
         {ship.mmsi && (

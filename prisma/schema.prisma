@@ -22,17 +22,17 @@ model User {
 }
 
 model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String           @id @default(cuid())
+  name        String           @unique
   label       String
   description String?
-  system      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  system      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
   permissions RolePermission[]
 }
 
 model Permission {
-  id          String @id
+  id          String           @id
   label       String
   description String?
   roles       RolePermission[]
@@ -59,52 +59,58 @@ enum PaymentStatus {
 }
 
 model Ship {
-  id        String   @id @default(uuid())
-  nama      String
-  muatan    String?
-  mmsi      String?
-  voyages   Voyage[]
-  activities ShipActivity[]
-  stocks    StockRecord[]
-  voyagePlan VoyagePlan?
+  id               String         @id @default(uuid())
+  nama             String
+  muatan           String?
+  mmsi             String?
+  voyages          Voyage[]
+  activities       ShipActivity[]
+  stocks           StockRecord[]
+  voyagePlan       VoyagePlan?
   fuelTransfersOut FuelTransfer[] @relation("TransferFrom")
   fuelTransfersIn  FuelTransfer[] @relation("TransferTo")
-  createdById String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdById      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@map("ships")
 }
 
 model Voyage {
-  id          String         @id @default(uuid())
-  shipId      String
-  ship        Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  ruteAsalId  String?
-  ruteTujuanId String?
-  ruteAsalJetty  Jetty?      @relation("VoyageAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
-  ruteTujuanJetty Jetty?     @relation("VoyageTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
-  shipper     String?
-  tglStart   DateTime?
-  tglEnd     DateTime?
-  siNomor    String?
-  siTanggal  DateTime?
-  spalNomor  String?
-  spalTanggal DateTime?
-  statusBayar PaymentStatus?
-  invoiceNomor String?
-  prorata    Int?
-  norLoadingStart  DateTime?
-  norLoadingEnd    DateTime?
-  norBongkarStart  DateTime?
-  norBongkarEnd    DateTime?
-  catatan    String?
-  activities ShipActivity[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  shipId          String
+  ship            Ship           @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  ruteAsalId      String?
+  ruteTujuanId    String?
+  ruteAsalJetty   Jetty?         @relation("VoyageAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
+  ruteTujuanJetty Jetty?         @relation("VoyageTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
+  shipper         String?
+  tglStart        DateTime?
+  tglEnd          DateTime?
+  siNomor         String?
+  siTanggal       DateTime?
+  spalNomor       String?
+  spalTanggal     DateTime?
+  statusBayar     PaymentStatus?
+  invoiceNomor    String?
+  tipePelayaran   VoyageType     @default(CQD)
+  prorata         Int?
+  norLoadingStart DateTime?
+  norLoadingEnd   DateTime?
+  norBongkarStart DateTime?
+  norBongkarEnd   DateTime?
+  catatan         String?
+  activities      ShipActivity[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([shipId])
   @@map("voyages")
+}
+
+enum VoyageType {
+  CQD
+  PRORATA
 }
 
 model ActivityCategory {
@@ -134,37 +140,37 @@ model ShipActivity {
 }
 
 model StockRecord {
-  id        String   @id @default(uuid())
-  shipId    String
-  ship      Ship     @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  tanggal   DateTime
-  stokAwal  Decimal
-  pengisian Decimal  @default(0)
-  transferMasuk  Decimal  @default(0)
-  transferKeluar Decimal  @default(0)
-  me        Decimal
-  ae        Decimal
-  sisaStok  Decimal
-  catatan   String?
-  transferId String?
-  transfer   FuelTransfer? @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id             String        @id @default(uuid())
+  shipId         String
+  ship           Ship          @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  tanggal        DateTime
+  stokAwal       Decimal
+  pengisian      Decimal       @default(0)
+  transferMasuk  Decimal       @default(0)
+  transferKeluar Decimal       @default(0)
+  me             Decimal
+  ae             Decimal
+  sisaStok       Decimal
+  catatan        String?
+  transferId     String?
+  transfer       FuelTransfer? @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
 
   @@index([shipId])
   @@map("stock_records")
 }
 
 model FuelTransfer {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   tanggal     DateTime
   fromShipId  String
   toShipId    String
-  fromShip    Ship     @relation("TransferFrom", fields: [fromShipId], references: [id], onDelete: Cascade)
-  toShip      Ship     @relation("TransferTo", fields: [toShipId], references: [id], onDelete: Cascade)
+  fromShip    Ship          @relation("TransferFrom", fields: [fromShipId], references: [id], onDelete: Cascade)
+  toShip      Ship          @relation("TransferTo", fields: [toShipId], references: [id], onDelete: Cascade)
   jumlah      Decimal
   catatan     String?
   createdById String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
   records     StockRecord[]
 
   @@index([fromShipId])
@@ -173,45 +179,45 @@ model FuelTransfer {
 }
 
 model Document {
-  id         String    @id @default(uuid())
-  nama       String
-  nomor      String
-  tglTerbit  DateTime?
-  tglExpire  DateTime?
-  catatan    String?
+  id          String    @id @default(uuid())
+  nama        String
+  nomor       String
+  tglTerbit   DateTime?
+  tglExpire   DateTime?
+  catatan     String?
   createdById String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("documents")
 }
 
 model VoyagePlan {
-  id         String    @id @default(uuid())
-  shipId     String    @unique
-  ship       Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
-  ruteAsalId   String?   @map("rute_asal_id")
-  ruteTujuanId String?   @map("rute_tujuan_id")
-  ruteAsalJetty  Jetty?  @relation("PlanAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
-  ruteTujuanJetty Jetty? @relation("PlanTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
-  eta        DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  shipId          String    @unique
+  ship            Ship      @relation(fields: [shipId], references: [id], onDelete: Cascade)
+  ruteAsalId      String?   @map("rute_asal_id")
+  ruteTujuanId    String?   @map("rute_tujuan_id")
+  ruteAsalJetty   Jetty?    @relation("PlanAsal", fields: [ruteAsalId], references: [id], onDelete: SetNull)
+  ruteTujuanJetty Jetty?    @relation("PlanTujuan", fields: [ruteTujuanId], references: [id], onDelete: SetNull)
+  eta             DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@map("voyage_plans")
 }
 
 model Jetty {
-  id        String    @id @default(uuid())
-  nama      String    @unique
+  id        String     @id @default(uuid())
+  nama      String     @unique
   alias     String?
   location  String?
   lat       Float?
   lon       Float?
   type      JettyType?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   voyagesAsal   Voyage[]     @relation("VoyageAsal")
   voyagesTujuan Voyage[]     @relation("VoyageTujuan")

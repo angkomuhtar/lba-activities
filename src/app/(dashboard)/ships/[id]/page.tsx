@@ -46,6 +46,7 @@ export default async function ShipDetailPage({ params }: { params: Promise<{ id:
     shipper: v.shipper,
     statusBayar: v.statusBayar,
     invoiceNomor: v.invoiceNomor,
+    tipePelayaran: v.tipePelayaran,
     tglStart: v.tglStart ? toInputDate(v.tglStart) : null,
     tglEnd: v.tglEnd ? toInputDate(v.tglEnd) : null,
     siNomor: v.siNomor,

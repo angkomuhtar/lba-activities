@@ -136,6 +136,7 @@ const voyageSchema = z.object({
   shipper: z.string().trim().optional().nullable(),
   statusBayar: z.enum(["DP", "LUNAS"]).optional().nullable(),
   invoiceNomor: z.string().trim().optional().nullable(),
+  tipePelayaran: z.enum(["CQD", "PRORATA"]),
   tglStart: z.string().optional().nullable(),
   tglEnd: z.string().optional().nullable(),
   siNomor: z.string().trim().optional().nullable(),
@@ -156,6 +157,7 @@ type VoyageData = {
   shipper: string | null;
   statusBayar: "DP" | "LUNAS" | null;
   invoiceNomor: string | null;
+  tipePelayaran: "CQD" | "PRORATA";
   tglStart: Date | null;
   tglEnd: Date | null;
   siNomor: string | null;
@@ -179,6 +181,7 @@ async function voyagePayload(
     shipper: formData.get("shipper") || null,
     statusBayar: formData.get("statusBayar") || null,
     invoiceNomor: formData.get("invoiceNomor") || null,
+    tipePelayaran: formData.get("tipePelayaran"),
     tglStart: formData.get("tglStart") || null,
     tglEnd: formData.get("tglEnd") || null,
     siNomor: formData.get("siNomor") || null,
@@ -198,7 +201,7 @@ async function voyagePayload(
 
   // Prorata harus angka hari positif bila diisi.
   let prorata: number | null = null;
-  if (parsed.data.prorata) {
+  if (parsed.data.tipePelayaran === "PRORATA" && parsed.data.prorata) {
     const n = parseInt(parsed.data.prorata, 10);
     if (Number.isNaN(n) || n < 1) {
       return { error: "Prorata harus berupa angka hari positif." };
@@ -229,6 +232,7 @@ async function voyagePayload(
     shipper: parsed.data.shipper || null,
     statusBayar: parsed.data.statusBayar || null,
     invoiceNomor: parsed.data.invoiceNomor || null,
+    tipePelayaran: parsed.data.tipePelayaran,
     tglStart: parseDate(parsed.data.tglStart),
     tglEnd: parseDate(parsed.data.tglEnd),
     siNomor: parsed.data.siNomor || null,
@@ -237,10 +241,10 @@ async function voyagePayload(
     spalTanggal: parseDate(parsed.data.spalTanggal),
     catatan: parsed.data.catatan || null,
     prorata,
-    norLoadingStart: parseDateTime(parsed.data.norLoadingStart),
-    norLoadingEnd: parseDateTime(parsed.data.norLoadingEnd),
-    norBongkarStart: parseDateTime(parsed.data.norBongkarStart),
-    norBongkarEnd: parseDateTime(parsed.data.norBongkarEnd),
+    norLoadingStart: parsed.data.tipePelayaran === "PRORATA" ? parseDateTime(parsed.data.norLoadingStart) : null,
+    norLoadingEnd: parsed.data.tipePelayaran === "PRORATA" ? parseDateTime(parsed.data.norLoadingEnd) : null,
+    norBongkarStart: parsed.data.tipePelayaran === "PRORATA" ? parseDateTime(parsed.data.norBongkarStart) : null,
+    norBongkarEnd: parsed.data.tipePelayaran === "PRORATA" ? parseDateTime(parsed.data.norBongkarEnd) : null,
   };
 
   // NOR end harus setelah NOR start bila keduanya diisi (loading & bongkar).

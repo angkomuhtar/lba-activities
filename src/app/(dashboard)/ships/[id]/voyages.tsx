@@ -9,7 +9,7 @@ import {
   updateVoyage,
   type ActionResult,
 } from "@/app/actions/ships";
-import type { ActivityStatus, PaymentStatus } from "@prisma/client";
+import type { ActivityStatus, PaymentStatus, VoyageType } from "@prisma/client";
 import { statusColor } from "@/lib/ship-status";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export interface VoyageItem {
   shipper: string | null;
   statusBayar: PaymentStatus | null;
   invoiceNomor: string | null;
+  tipePelayaran: VoyageType;
   tglStart: string | null;
   tglEnd: string | null;
   siNomor: string | null;
@@ -180,36 +181,54 @@ function NorFields({
   prefix: string;
   voyage?: VoyageItem;
 }) {
+  const [tipePelayaran, setTipePelayaran] = useState<VoyageType>(
+    voyage?.tipePelayaran ?? "CQD",
+  );
   const val = (name: keyof VoyageItem) => voyage?.[name] ?? "";
   return (
     <div className="space-y-3 rounded-lg border border-dashed p-3">
-      <p className="text-sm font-medium text-muted-foreground">NOR & Prorata</p>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}-prorata`}>Prorata (hari)</Label>
-          <Input
-            id={`${prefix}-prorata`}
-            name="prorata"
-            type="number"
-            min={1}
-            defaultValue={voyage ? (voyage.prorata ?? "") : ""}
-            disabled={disabled}
-          />
-        </div>
-        <div className="hidden lg:block" />
-        {NOR_FIELDS.map((f) => (
-          <div key={f.name} className="space-y-2">
-            <Label htmlFor={`${prefix}-${f.name}`}>{f.label}</Label>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}-tipePelayaran`}>Jenis Pelayaran</Label>
+        <select
+          id={`${prefix}-tipePelayaran`}
+          name="tipePelayaran"
+          value={tipePelayaran}
+          onChange={(event) => setTipePelayaran(event.target.value as VoyageType)}
+          disabled={disabled}
+          className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
+        >
+          <option value="CQD">CQD</option>
+          <option value="PRORATA">Prorata</option>
+        </select>
+      </div>
+      {tipePelayaran === "PRORATA" && (
+        <div className="grid grid-cols-2 gap-3 border-t pt-3">
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}-prorata`}>Prorata (hari)</Label>
             <Input
-              id={`${prefix}-${f.name}`}
-              name={f.name}
-              type="datetime-local"
-              defaultValue={val(f.name) ? String(val(f.name)) : ""}
+              id={`${prefix}-prorata`}
+              name="prorata"
+              type="number"
+              min={1}
+              defaultValue={voyage ? (voyage.prorata ?? "") : ""}
               disabled={disabled}
             />
           </div>
-        ))}
-      </div>
+          <div className="hidden lg:block" />
+          {NOR_FIELDS.map((f) => (
+            <div key={f.name} className="space-y-2">
+              <Label htmlFor={`${prefix}-${f.name}`}>{f.label}</Label>
+              <Input
+                id={`${prefix}-${f.name}`}
+                name={f.name}
+                type="datetime-local"
+                defaultValue={val(f.name) ? String(val(f.name)) : ""}
+                disabled={disabled}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -373,6 +392,9 @@ function VoyageCard({ voyage, canManage, jetties }: { voyage: VoyageItem; canMan
           <span className="font-medium">{voyage.shipper}</span>
         </p>
       )}
+      <p className="mt-1 text-sm text-muted-foreground">
+        Jenis Pelayaran: <span className="font-medium">{voyage.tipePelayaran === "PRORATA" ? "Prorata" : "CQD"}</span>
+      </p>
 
       {longest && (
         <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm">

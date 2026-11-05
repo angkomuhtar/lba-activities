@@ -44,6 +44,7 @@ export default async function VoyagesPage() {
     shipper: v.shipper,
     statusBayar: v.statusBayar,
     invoiceNomor: v.invoiceNomor,
+    tipePelayaran: v.tipePelayaran,
     tglStart: v.tglStart ? toInputDate(v.tglStart) : null,
     tglEnd: v.tglEnd ? toInputDate(v.tglEnd) : null,
     siNomor: v.siNomor,
